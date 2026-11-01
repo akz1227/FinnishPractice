@@ -16,6 +16,7 @@
 }
 
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5;
   padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .wrap{max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
@@ -35,6 +36,7 @@ h1{color:var(--gold);font-family:var(--f-display);font-weight:800;font-size:2rem
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px;display:flex;flex-direction:column;gap:14px;min-width:0}
 .chips{display:flex;gap:8px;flex-wrap:wrap}
 .chip{font-size:.72rem;text-transform:uppercase;letter-spacing:.09em;font-weight:600;color:var(--lake);background:var(--lake-soft);border-radius:6px;padding:4px 9px}
+.chip.gold{color:var(--gold);background:var(--lake-soft)}
 .chip.warn{color:var(--bad);background:var(--bad-soft)}
 .prompt{font-family:var(--f-display);font-weight:700;font-size:clamp(1.65rem,6vw,2.35rem);line-height:1.15;margin:0;letter-spacing:-.015em;text-wrap:balance;overflow-wrap:anywhere}
 .blank{display:inline-block;min-width:3.2ch;border-bottom:3px solid var(--gold);color:transparent;user-select:none;margin-inline:.1em}
@@ -96,7 +98,7 @@ form{display:flex;flex-direction:column;gap:12px}
   </section>
 
   <section id="quiz" class="card">
-    <div class="chips"><span id="kind" class="chip"></span><span id="again" class="chip warn" hidden>Repeat</span></div>
+    <div class="chips"><span id="kind" class="chip"></span><span id="again" class="chip warn" hidden>Repeat</span><span id="rev" class="chip gold" hidden>Missed before</span></div>
     <p id="prompt" class="prompt"></p>
     <p id="english" class="english" hidden></p>
     <p id="hint" class="hint" hidden></p>
@@ -120,11 +122,11 @@ form{display:flex;flex-direction:column;gap:12px}
       <p><strong>Questions you had to repeat</strong></p>
       <ul id="missedList" class="review"></ul>
     </div>
-    <p class="english">A new set of questions opens tomorrow.</p>
+    <p id="carryNote" class="english"></p>
     <button id="redo" class="again" type="button">Practise today's set again</button>
   </section>
 
-  <p class="rules">Spelling must be exact, including ä and ö. Capital letters and punctuation are not checked. If you miss a question, you see the answer, type it exactly, and the question returns after 5 more questions until you get it right.</p>
+  <p class="rules">Spelling must be exact, including ä and ö. Capital letters and punctuation are not checked. If you miss a question, you see the answer and type it exactly. It then returns 5 times, after every 5 questions, and keeps returning after that only while you still get it wrong. Every question you missed today is added to tomorrow's practice.</p>
 </main>
 
 <script>
@@ -295,11 +297,21 @@ function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
 const now=new Date();
 const DAYIDX=Math.floor(Date.UTC(now.getFullYear(),now.getMonth(),now.getDate())/864e5);
 const DATESTR=now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0")+"-"+String(now.getDate()).padStart(2,"0");
-const KEY="paivan-suomi-"+DATESTR, DONEKEY="paivan-suomi-done";
-function freshState(){const ids=buildDay(DAYIDX);return{ids,queue:ids.slice(),pos:0,phase:"ask",mastered:[],missed:[],attempts:0,lastTyped:""}}
+const KEY="paivan-suomi-v2-"+DATESTR, DONEKEY="paivan-suomi-done", CARRYKEY="paivan-suomi-carry";
+const REPEATS=5, GAP=5;
+function getCarry(){try{const a=JSON.parse(lsGet(CARRYKEY)||"[]");return Array.isArray(a)?a.filter(id=>ITEMS[id]):[]}catch(e){return[]}}
+function setCarry(a){lsSet(CARRYKEY,JSON.stringify(a))}
+function addCarry(id){const a=getCarry();if(!a.includes(id)){a.push(id);setCarry(a)}}
+function mk(ids,review){return{ids,queue:ids.slice(),pos:0,phase:"ask",mastered:[],missed:[],reps:{},review,attempts:0,lastTyped:""}}
+function freshState(){
+  const base=buildDay(DAYIDX),review=getCarry();
+  setCarry([]);
+  const ids=shuffle([...new Set([...base,...review])],DAYIDX*17+3);
+  return mk(ids,review);
+}
 let ST;
 (function load(){
-  try{const raw=lsGet(KEY);if(raw){const s=JSON.parse(raw);if(s&&Array.isArray(s.ids)&&Array.isArray(s.queue)&&s.ids.every(id=>ITEMS[id])&&s.queue.every(id=>ITEMS[id])){ST=s}}}catch(e){}
+  try{const raw=lsGet(KEY);if(raw){const s=JSON.parse(raw);if(s&&Array.isArray(s.ids)&&Array.isArray(s.queue)&&s.reps&&typeof s.reps==='object'&&Array.isArray(s.review)&&s.ids.every(id=>ITEMS[id])&&s.queue.every(id=>ITEMS[id])){ST=s}}}catch(e){}
   if(!ST)ST=freshState();
 })();
 function save(){lsSet(KEY,JSON.stringify(ST))}
@@ -356,8 +368,12 @@ function render(){
   if(ST.pos>=ST.queue.length){return showDone()}
   el.quiz.hidden=false;el.done.hidden=true;
   const it=ITEMS[ST.queue[ST.pos]];
-  const isRepeat=ST.missed.includes(it.id);
-  el.again.hidden=!isRepeat;
+  if(it.id in ST.reps){
+    const n=ST.reps[it.id];
+    el.again.hidden=false;
+    el.again.textContent=n>0?"Repeat "+(REPEATS-n+1)+" of "+REPEATS:"Repeat · get it right";
+  }else el.again.hidden=true;
+  $("#rev").hidden=!ST.review.includes(it.id);
 
   if(it.type==="gap"){
     el.kind.textContent="Fill the gap · "+(it.kind==="gen"?"genetiivi":"partitiivi");
@@ -390,7 +406,9 @@ function render(){
 function showOk(it){
   el.fb.hidden=false;el.fb.className="fb ok";
   const extra=it.ans.length>1?'<span class="small">Also accepted: '+it.ans.slice(1).map(esc).join(" · ")+"</span>":"";
-  el.fb.innerHTML="<strong>Oikein! Correct.</strong>"+extra;
+  const left=ST.reps[it.id]||0;
+  const more=left>0?'<span class="small">This question returns '+left+" more time"+(left>1?"s":"")+" today, after every 5 questions.</span>":"";
+  el.fb.innerHTML="<strong>Oikein! Correct.</strong>"+extra+more;
 }
 function showMiss(it,wrongTry,typed){
   el.fb.hidden=false;el.fb.className="fb bad";
@@ -423,14 +441,26 @@ el.f.addEventListener("submit",e=>{
   if(ST.phase==="ask"){
     ST.attempts++;
     ST.lastTyped=typed;
-    if(ok){
-      ST.phase="right";
-      if(!ST.mastered.includes(it.id))ST.mastered.push(it.id);
+    const requeue=()=>ST.queue.splice(Math.min(ST.queue.length,ST.pos+GAP+1),0,it.id);
+    if(!(it.id in ST.reps)){
+      /* first time this question appears today */
+      if(ok){ST.phase="right";ST.mastered.push(it.id)}
+      else{
+        ST.phase="retype";
+        ST.missed.push(it.id);ST.reps[it.id]=REPEATS;
+        addCarry(it.id);requeue();
+      }
     }else{
-      ST.phase="retype";
-      if(!ST.missed.includes(it.id))ST.missed.push(it.id);
-      const at=Math.min(ST.queue.length,ST.pos+6);
-      ST.queue.splice(at,0,it.id);
+      /* a scheduled return of a missed question */
+      ST.reps[it.id]=Math.max(0,ST.reps[it.id]-1);
+      if(ok){
+        ST.phase="right";
+        if(ST.reps[it.id]>0)requeue();
+        else if(!ST.mastered.includes(it.id))ST.mastered.push(it.id);
+      }else{
+        ST.phase="retype";
+        addCarry(it.id);requeue();
+      }
     }
     save();render();
   }else if(ST.phase==="retype"){
@@ -459,7 +489,8 @@ function showDone(){
   $("#stats").innerHTML=
     '<div class="stat"><b>'+total+'</b><span>questions mastered</span></div>'+
     '<div class="stat"><b>'+Math.round(first/total*100)+'%</b><span>right on first try</span></div>'+
-    '<div class="stat"><b>'+ST.missed.length+'</b><span>needed a repeat</span></div>';
+    '<div class="stat"><b>'+ST.missed.length+'</b><span>added to tomorrow</span></div>';
+  $("#carryNote").textContent=ST.missed.length?ST.missed.length+(ST.missed.length===1?" question you missed is":" questions you missed are")+" added to tomorrow's practice.":"Nothing missed today. Tomorrow brings a fresh set.";
   const box=$("#missedBox");
   if(ST.missed.length){
     box.hidden=false;
@@ -471,7 +502,7 @@ function showDone(){
     }).join("");
   }else box.hidden=true;
 }
-$("#redo").addEventListener("click",()=>{ST=freshState();save();render()});
+$("#redo").addEventListener("click",()=>{ST=mk(ST.ids.slice(),ST.review);save();render()});
 
 render();
 </script>
