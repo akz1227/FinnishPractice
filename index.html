@@ -54,6 +54,12 @@ form{display:flex;flex-direction:column;gap:12px}
 .keys{display:flex;gap:8px}
 .key{font:inherit;font-size:1.05rem;min-width:44px;height:40px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
 .key:hover{border-color:var(--gold)}
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:10px}
+.opt{font:inherit;font-size:1.1rem;text-align:left;padding:14px 16px;border-radius:10px;border:2px solid var(--line);background:var(--paper);color:var(--ink);cursor:pointer;overflow-wrap:anywhere}
+.opt:hover:not(:disabled){border-color:var(--gold)}
+.opt:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.opt.ok{border-color:var(--ok);background:var(--ok-soft)}
+.opt:disabled{cursor:default;color:var(--ink);opacity:1}
 .go,.again{font:inherit;font-weight:600;font-size:1.05rem;border:0;border-radius:10px;padding:14px 20px;background:var(--lake);color:var(--on-lake);cursor:pointer}
 .again{background:transparent;color:var(--lake);border:2px solid var(--lake)}
 .go:focus-visible,.key:focus-visible,.again:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
@@ -80,6 +86,8 @@ form{display:flex;flex-direction:column;gap:12px}
 .review li{border-top:1px solid var(--line);padding-top:8px;overflow-wrap:anywhere}
 .review small{display:block;color:var(--muted)}
 .review code{font-family:var(--f-mono);color:var(--ok)}
+.why{margin-top:4px;padding-top:8px;border-top:1px solid currentColor;font-size:.92rem;color:var(--ink)}
+.why b{color:var(--gold);font-weight:650}
 .rules{margin:0;color:var(--muted);font-size:.86rem}
 </style>
 
@@ -105,7 +113,8 @@ form{display:flex;flex-direction:column;gap:12px}
     <form id="f" autocomplete="off">
       <label for="ans" class="sr">Your answer in Finnish</label>
       <input id="ans" type="text" lang="fi" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Kirjoita vastaus…">
-      <div class="keys" aria-label="Special letters">
+      <div id="opts" class="opts" hidden></div>
+      <div id="keys" class="keys" aria-label="Special letters">
         <button class="key" type="button" data-ch="ä">ä</button>
         <button class="key" type="button" data-ch="ö">ö</button>
         <button class="key" type="button" data-ch="å">å</button>
@@ -126,7 +135,7 @@ form{display:flex;flex-direction:column;gap:12px}
     <button id="redo" class="again" type="button">Practise today's set again</button>
   </section>
 
-  <p class="rules">Spelling must be exact, including ä and ö. Capital letters and punctuation are not checked. If you miss a question, you see the answer and type it exactly. It then returns 5 times, after every 5 questions, and keeps returning after that only while you still get it wrong. Every question you missed today is added to tomorrow's practice.</p>
+  <p class="rules">Multiple-choice questions work the same way. Spelling must be exact, including ä and ö. Capital letters and punctuation are not checked. If you miss a question, you see the answer and type it exactly. It then returns 5 times, after every 5 questions, and keeps returning after that only while you still get it wrong. Every question you missed today is added to tomorrow's practice.</p>
 </main>
 
 <script>
@@ -272,13 +281,15 @@ const G=[
 ["Tarvitsen sata ___.","I need one hundred euros.","euro","euroa","par","after a number"]
 ];
 
+const MCQ=[{"q": "kauppa → genitive: ___", "hint": "the shop's", "ans": "kaupan", "opts": ["kaupan", "kauppan", "kauvan", "kaupen"], "why": "The genitive ends in -n, which closes the syllable (kau-pan). In a closed syllable the strong pp becomes the weak p."}, {"q": "kukka → genitive: ___", "hint": "the flower's", "ans": "kukan", "opts": ["kukan", "kukkan", "kuvan", "kukin"], "why": "kk → k before a closed syllable: ku-kan."}, {"q": "lippu → genitive: ___", "hint": "the ticket's", "ans": "lipun", "opts": ["lipun", "lippun", "livun", "lipin"], "why": "pp → p: li-pun."}, {"q": "katu → genitive: ___", "hint": "the street's", "ans": "kadun", "opts": ["kadun", "katun", "kavun", "katon"], "why": "A single t weakens to d: ka-dun."}, {"q": "pöytä → on the table: ___", "hint": "pöytä = table", "ans": "pöydällä", "opts": ["pöydällä", "pöytällä", "pöyvällä", "pöydelä"], "why": "t → d before the closed syllable -täl-: pöy-däl-lä."}, {"q": "leipä → genitive: ___", "hint": "the bread's", "ans": "leivän", "opts": ["leivän", "leipän", "leibän", "leippän"], "why": "A single p weakens to v: lei-vän."}, {"q": "tikku → genitive: ___", "hint": "the stick's", "ans": "tikun", "opts": ["tikun", "tikkun", "tigun", "tikin"], "why": "kk → k: ti-kun."}, {"q": "apteekki → genitive: ___", "hint": "the pharmacy's", "ans": "apteekin", "opts": ["apteekin", "apteekkin", "apteegin", "aptekin"], "why": "kk → k: ap-tee-kin."}, {"q": "kaupunki → genitive: ___", "hint": "the city's", "ans": "kaupungin", "opts": ["kaupungin", "kaupunkin", "kaupungen", "kaupunnin"], "why": "nk → ng: kau-pun-gin."}, {"q": "aurinko → genitive: ___", "hint": "the sun's", "ans": "auringon", "opts": ["auringon", "aurinkon", "aurinon", "auringen"], "why": "nk → ng: au-rin-gon."}, {"q": "lintu → genitive: ___", "hint": "the bird's", "ans": "linnun", "opts": ["linnun", "lintun", "lindun", "linun"], "why": "nt → nn: lin-nun."}, {"q": "ranta → genitive: ___", "hint": "the beach's", "ans": "rannan", "opts": ["rannan", "rantan", "randan", "ranan"], "why": "nt → nn: ran-nan."}, {"q": "tyttö → genitive: ___", "hint": "the girl's", "ans": "tytön", "opts": ["tytön", "tyttön", "tydön", "tytin"], "why": "tt → t: ty-tön."}, {"q": "poika → genitive: ___", "hint": "the boy's", "ans": "pojan", "opts": ["pojan", "poikan", "poian", "pogan"], "why": "k between i and a becomes j: poi-jan."}, {"q": "paikka → genitive: ___", "hint": "the place's", "ans": "paikan", "opts": ["paikan", "paikkan", "paigan", "paikaan"], "why": "kk → k: pai-kan."}, {"q": "ilta → in the evening: ___", "hint": "ilta = evening", "ans": "illalla", "opts": ["illalla", "iltalla", "ildalla", "illaalla"], "why": "lt → ll: il-lal-la."}, {"q": "kenkä → plural: ___", "hint": "shoes", "ans": "kengät", "opts": ["kengät", "kenkät", "kenhät", "kenät"], "why": "nk → ng: ken-gät."}, {"q": "Menen ___. (kauppa)", "hint": "I go to the shop", "ans": "kauppaan", "opts": ["kauppaan", "kaupaan", "kaupan", "kauvaan"], "why": "The illative (into, to) is an exception: it keeps the strong grade, kauppaan."}, {"q": "Olen ___. (kauppa)", "hint": "I am in the shop", "ans": "kaupassa", "opts": ["kaupassa", "kauppassa", "kauvassa", "kaupasa"], "why": "-ssa closes the syllable (kau-pas-sa), so the weak grade is used."}, {"q": "Olen ___. (pankki)", "hint": "I am in the bank", "ans": "pankissa", "opts": ["pankissa", "pankkissa", "pangissa", "pankisa"], "why": "kk → k before a closed syllable: pan-kis-sa."}, {"q": "Olen ___. (kirkko)", "hint": "I am in the church", "ans": "kirkossa", "opts": ["kirkossa", "kirkkossa", "kirgossa", "kirkosa"], "why": "kk → k: kir-kos-sa."}, {"q": "Ostan ___. (kukka, partitive)", "hint": "I buy a flower", "ans": "kukkaa", "opts": ["kukkaa", "kukaa", "kuvaa", "kukkan"], "why": "The partitive ends in an open syllable (kuk-kaa), so the strong grade stays."}, {"q": "Minä ___ kirjan. (ottaa)", "hint": "I take the book", "ans": "otan", "opts": ["otan", "ottan", "odan", "ottaan"], "why": "Minä + -n closes the syllable (o-tan), so tt → t."}, {"q": "Hän ___ kirjan. (ottaa)", "hint": "He takes the book", "ans": "ottaa", "opts": ["ottaa", "otaa", "otta", "odaa"], "why": "In the hän form the syllable stays open (ot-taa), so the strong grade stays."}, {"q": "Minä ___ pitkään. (nukkua)", "hint": "I sleep for a long time", "ans": "nukun", "opts": ["nukun", "nukkun", "nugun", "nukkan"], "why": "Minä form: kk → k: nu-kun."}, {"q": "Hän ___ pitkään. (nukkua)", "hint": "He sleeps for a long time", "ans": "nukkuu", "opts": ["nukkuu", "nukuu", "nugu", "nukku"], "why": "In the hän form the syllable stays open (nuk-kuu), so the strong grade stays."}, {"q": "Minä ___ kirjeen. (kirjoittaa)", "hint": "I write the letter", "ans": "kirjoitan", "opts": ["kirjoitan", "kirjoittan", "kirjoidan", "kirjoitaan"], "why": "tt → t: kir-joi-tan."}, {"q": "Sinä ___ kaverille. (soittaa)", "hint": "You call a friend", "ans": "soitat", "opts": ["soitat", "soittat", "soidat", "soitaat"], "why": "tt → t: soi-tat."}, {"q": "Minä ___ sinua. (auttaa)", "hint": "I help you", "ans": "autan", "opts": ["autan", "auttan", "audan", "autaan"], "why": "tt → t: au-tan."}, {"q": "Minä ___ lahjan. (antaa)", "hint": "I give a present", "ans": "annan", "opts": ["annan", "antan", "andan", "annaan"], "why": "nt → nn: an-nan."}, {"q": "Minä ___ kirjaa. (lukea)", "hint": "I read a book", "ans": "luen", "opts": ["luen", "lukan", "lugen", "lukeen"], "why": "The k disappears in the weak grade: lu-en."}, {"q": "Hän ___ kirjaa. (lukea)", "hint": "He reads a book", "ans": "lukee", "opts": ["lukee", "luee", "lugee", "lukea"], "why": "In the hän form the strong grade stays: lukee."}, {"q": "Which pair is the weak grade of kk?", "hint": "kpt gradation", "ans": "kk → k", "opts": ["kk → k", "kk → g", "kk → v", "kk → h"], "why": "Double kk becomes a single k: kukka → kukan."}, {"q": "Which pair is the weak grade of a single p?", "hint": "kpt gradation", "ans": "p → v", "opts": ["p → v", "p → b", "p → pp", "p → m"], "why": "A single p becomes v: leipä → leivän."}, {"q": "Which pair is the weak grade of a single t?", "hint": "kpt gradation", "ans": "t → d", "opts": ["t → d", "t → v", "t → n", "t → j"], "why": "A single t becomes d: katu → kadun."}, {"q": "nk becomes ___ in the weak grade", "hint": "kpt gradation", "ans": "ng", "opts": ["ng", "nn", "nk", "nh"], "why": "nk → ng: kenkä → kengät, aurinko → auringon."}, {"q": "Which noun has NO consonant change in the genitive?", "hint": "kpt gradation", "ans": "kylä", "opts": ["kylä", "kauppa", "katu", "lippu"], "why": "Kylä → kylän: there is no k, p or t in a gradation position. The others change: kaupan, kadun, lipun."}, {"q": "When does the weak grade appear?", "hint": "kpt gradation", "ans": "When the next syllable is closed", "opts": ["When the next syllable is closed", "When the next syllable is open", "Only in the plural", "Only in the first syllable"], "why": "Closed (ends in a consonant) = weak: kau-pan. Open (ends in a vowel) = strong: kaup-pa."}, {"q": "Which form keeps the strong grade?", "hint": "kpt gradation", "ans": "kauppaa", "opts": ["kauppaa", "kaupan", "kaupassa", "kaupat"], "why": "Kauppaa (partitive) ends in an open syllable, so the strong grade stays. The others are weak."}];
 const T=[...W.map(([en,fi])=>({k:"w",en,fi})),...S.map(([en,fi])=>({k:"s",en,fi}))];
 const ITEMS={};
 T.forEach((t,i)=>{ITEMS["t"+i]={id:"t"+i,type:t.k==="w"?"word":"sent",en:t.en,ans:[].concat(t.fi)}});
+MCQ.forEach((m,i)=>{ITEMS["m"+i]={id:"m"+i,type:"mc",q:m.q,hint:m.hint,en:m.q.replace("___","…")+" ("+m.hint+")",ans:[m.ans],opts:m.opts,why:m.why}});
 G.forEach((g,i)=>{ITEMS["g"+i]={id:"g"+i,type:"gap",sent:g[0],en:g[1],base:g[2],ans:[].concat(g[3]),kind:g[4],note:g[5]||""}});
 
 /* ---------- Daily selection ---------- */
-const TOTAL=40, GAPS=18;
+const TOTAL=40, GAPS=16, MCN=6;
 function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 function shuffle(arr,seed){const r=mulberry(seed),a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 const permCache={};
@@ -286,9 +297,10 @@ function perm(name,n,c){const k=name+c;return permCache[k]||(permCache[k]=shuffl
 /* Walks one shuffled deck per cycle, so nothing repeats until the whole bank has been used. */
 function pick(name,n,dayIdx,count){const out=[],seen=new Set();let k=dayIdx*count;while(out.length<count){const i=perm(name,n,Math.floor(k/n))[k%n];if(!seen.has(i)){seen.add(i);out.push(i)}k++}return out}
 function buildDay(dayIdx){
-  const t=pick("t",T.length,dayIdx,TOTAL-GAPS).map(i=>"t"+i);
+  const t=pick("t",T.length,dayIdx,TOTAL-GAPS-MCN).map(i=>"t"+i);
+  const m=pick("m",MCQ.length,dayIdx,MCN).map(i=>"m"+i);
   const g=pick("g",G.length,dayIdx,GAPS).map(i=>"g"+i);
-  return shuffle([...t,...g],dayIdx*31+5);
+  return shuffle([...t,...g,...m],dayIdx*31+5);
 }
 
 /* ---------- Storage ---------- */
@@ -344,6 +356,42 @@ function diffHtml(it,typed){
   return h;
 }
 
+
+/* ---------- Explanations ---------- */
+const EXP={"talo": "Noun. Genitive talon, partitive taloa. Example: Meillä on iso talo.", "auto": "Noun. Genitive auton, partitive autoa. Example: Minulla on auto.", "kirja": "Noun. Genitive kirjan, partitive kirjaa. Example: Luen kirjaa.", "vesi": "Irregular noun: the stem is vete-. Genitive veden, partitive vettä. Example: Juon vettä.", "kahvi": "Noun. Partitive kahvia (drinks are usually partitive). Example: Juon kahvia.", "maito": "Noun. Partitive maitoa. Example: Ostan maitoa.", "leipä": "Noun. Partitive leipää (ä because the word has ä). Example: Syön leipää.", "juusto": "Noun. Partitive juustoa. Example: Syön juustoa.", "voi": "Noun (butter). Partitive voita. Example: Haluan voita.", "muna": "Noun. Partitive munaa, plural munia. Example: Syön munan.", "omena": "Noun. Partitive omenaa, plural partitive omenoita. Example: Syön omenan.", "kala": "Noun. Partitive kalaa. Example: Syön kalaa.", "liha": "Noun. Partitive lihaa. Example: Emme syö lihaa.", "peruna": "Noun. Partitive perunaa, plural partitive perunoita.", "riisi": "Noun. Partitive riisiä (ä, because the vowel is i). Example: Syön riisiä.", "aamiainen": "Nouns in -nen change to -s-: genitive aamiaisen, partitive aamiaista. Example: Syön aamiaista.", "lounas": "Noun ending in -s. Genitive lounaan, partitive lounasta.", "illallinen": "Nouns in -nen change to -s-: genitive illallisen, partitive illallista.", "koulu": "Noun. Genitive koulun. Inessive koulussa = at school.", "opettaja": "Noun for a person doing something (-ja). Genitive opettajan, partitive opettajaa.", "opiskelija": "Noun in -ja. Genitive opiskelijan, partitive opiskelijaa.", "ystävä": "Noun. Genitive ystävän, partitive ystävää, plural ystävät.", "perhe": "Noun. Genitive perheen, partitive perhettä.", "äiti": "Noun. Consonant gradation t → d: genitive äidin, partitive äitiä.", "isä": "Noun. Genitive isän, partitive isää.", "sisko": "Noun. Genitive siskon, partitive siskoa. Also sisar (sister).", "veli": "Noun. The stem is velje-: genitive veljen, partitive veljeä.", "lapsi": "Noun. The stem is lapse-: genitive lapsen, partitive lasta, plural lapset.", "nainen": "Nouns in -nen change to -s-: genitive naisen, partitive naista.", "mies": "Noun. The stem is miehe-: genitive miehen, partitive miestä.", "koira": "Noun. Genitive koiran, partitive koiraa.", "kissa": "Noun. Genitive kissan, partitive kissaa.", "lintu": "Noun. Gradation nt → nn: genitive linnun, partitive lintua.", "kaupunki": "Noun. Gradation nk → ng: genitive kaupungin, partitive kaupunkia.", "katu": "Noun. Gradation t → d: genitive kadun, partitive katua. Katu is also in 'kadulla' (on the street).", "kauppa": "Noun. Gradation pp → p: genitive kaupan, kaupassa = in the shop, partitive kauppaa.", "bussi": "Noun. Genitive bussin, partitive bussia. Bussilla = by bus.", "juna": "Noun. Genitive junan, partitive junaa. Junalla = by train.", "asema": "Noun. Genitive aseman, partitive asemaa.", "lentokenttä": "Noun. Gradation tt → t: genitive lentokentän, partitive lentokenttää.", "lippu": "Noun. Gradation pp → p: genitive lipun, partitive lippua.", "raha": "Noun. Genitive rahan, partitive rahaa. Often used as an amount, so partitive.", "työ": "Noun. Genitive työn, partitive työtä. Töissä = at work, töihin = to work.", "toimisto": "Noun. Genitive toimiston, partitive toimistoa. Toimistossa = in the office.", "lääkäri": "Noun. Genitive lääkärin, partitive lääkäriä (ä after i).", "sairaala": "Noun. Genitive sairaalan, partitive sairaalaa. Sairaalassa = in hospital.", "apteekki": "Noun. Gradation kk → k: genitive apteekin, partitive apteekkia.", "sää": "Noun. Genitive sään, partitive säätä. Example: Sää on kaunis.", "sade": "Noun. Genitive sateen, partitive sadetta. The verb is sataa = to rain.", "lumi": "Noun. Genitive lumen, partitive lunta (irregular). Example: Talvella on lunta.", "aurinko": "Noun. Gradation nk → ng: genitive auringon, partitive aurinkoa.", "kesä": "Noun. Genitive kesän, partitive kesää. Kesällä = in summer.", "talvi": "Noun. Genitive talven, partitive talvea. Talvella = in winter.", "kevät": "Noun. Genitive kevään, partitive kevättä. Keväällä = in spring.", "syksy": "Noun. Genitive syksyn, partitive syksyä. Syksyllä = in autumn.", "aamu": "Noun. Genitive aamun, partitive aamua. Aamulla = in the morning.", "ilta": "Noun. Gradation lt → ll: genitive illan, partitive iltaa. Illalla = in the evening.", "yö": "Noun. Genitive yön, partitive yötä. Yöllä = at night.", "viikko": "Noun. Gradation kk → k: genitive viikon, partitive viikkoa. After a number: kaksi viikkoa.", "kuukausi": "Noun. Genitive kuukauden, partitive kuukautta. After a number: kolme kuukautta.", "vuosi": "Noun. Genitive vuoden, partitive vuotta. After a number: kaksi vuotta.", "tänään": "Adverb. It never changes. Example: Tänään on kylmä.", "huomenna": "Adverb. It never changes. (Huomenta = morning, as in Hyvää huomenta.)", "eilen": "Adverb. It never changes. Example: Eilen olin kotona.", "aina": "Adverb. It never changes. Example: Aina juon kahvia.", "ei koskaan": "Koskaan = ever. It goes with a negative verb, so: en koskaan, et koskaan, hän ei koskaan.", "usein": "Adverb. It never changes. Example: Käyn usein kaupassa.", "joskus": "Adverb. It never changes. Example: Joskus syön kalaa.", "iso": "Adjective. Genitive ison, plural isot. Also suuri.", "pieni": "Adjective. Genitive pienen, partitive pientä, plural pienet.", "uusi": "Adjective. Stem uude-: genitive uuden, partitive uutta, plural uudet.", "vanha": "Adjective. Genitive vanhan, partitive vanhaa. Kuinka vanha olet? = How old are you?", "hyvä": "Adjective. Genitive hyvän, partitive hyvää. Hyvää huomenta uses the partitive.", "huono": "Adjective. Genitive huonon, partitive huonoa. Also paha = bad (evil, painful).", "halpa": "Adjective. Genitive halvan (p → v), partitive halpaa.", "kallis": "Adjective in -s. Genitive kalliin, partitive kallista.", "kylmä": "Adjective. Partitive kylmää. Weather: Tänään on kylmä.", "lämmin": "Adjective. Stem lämpimä-: genitive lämpimän, partitive lämmintä.", "kuuma": "Adjective. Genitive kuuman, partitive kuumaa.", "kaunis": "Adjective in -s. Genitive kauniin, partitive kaunista.", "vaikea": "Adjective. Genitive vaikean, partitive vaikeaa.", "helppo": "Adjective. Gradation pp → p: genitive helpon, partitive helppoa.", "nopea": "Adjective. Genitive nopean, partitive nopeaa. Adverb: nopeasti.", "hidas": "Adjective. Genitive hitaan, partitive hidasta. Adverb: hitaasti.", "iloinen": "Adjectives in -nen change to -s-: genitive iloisen, partitive iloista.", "väsynyt": "Adjective from a verb. Plural väsyneet, genitive väsyneen, partitive väsynyttä.", "nälkäinen": "Adjective in -nen: genitive nälkäisen. Also Minulla on nälkä = I am hungry.", "janoinen": "Adjective in -nen: genitive janoisen. Also Minulla on jano = I am thirsty.", "punainen": "Adjective in -nen: genitive punaisen, partitive punaista.", "sininen": "Adjective in -nen: genitive sinisen, partitive sinistä.", "olla": "Irregular verb: olen, olet, on, olemme, olette, ovat. Negative: en ole.", "mennä": "Verb. Stem men-: menen, menet, menee. Past: menin.", "tulla": "Verb. tulen, tulet, tulee. Past: tulin.", "syödä": "Irregular verb: syön, syöt, syö, syömme. Past: söin. Object often partitive.", "juoda": "Irregular verb: juon, juot, juo, juomme. Past: join.", "nukkua": "Verb with gradation kk → k: nukun, nukut, nukkuu.", "lukea": "Verb. luen, luet, lukee. Past: luin. Object often partitive: lukea kirjaa.", "kirjoittaa": "Verb with gradation tt → t: kirjoitan, kirjoitat, kirjoittaa.", "puhua": "Verb. puhun, puhut, puhuu. Languages take the partitive: puhun suomea.", "ymmärtää": "Verb with gradation t → r: ymmärrän, ymmärrät, ymmärtää. Negative: en ymmärrä.", "ostaa": "Verb. ostan, ostat, ostaa. Past: ostin.", "myydä": "Verb. myyn, myyt, myy. Past: myin.", "asua": "Verb. asun, asut, asuu. Place with -ssa/-ssä: Asun Helsingissä.", "työskennellä": "Verb in -llä with gradation ll → l: työskentelen, työskentelet, työskentelee.", "opiskella": "Verb in -lla: opiskelen, opiskelet, opiskelee. Subject takes partitive: opiskelen suomea.", "oppia": "Verb with gradation pp → p: opin, opit, oppii. Languages take the partitive.", "tietää": "Verb with gradation t → d: tiedän, tiedät, tietää. Use for facts. Negative: en tiedä.", "tuntea": "Verb. tunnen, tunnet, tuntee. Use tuntea for people, tietää for facts.", "haluta": "Verb. haluan, haluat, haluaa. Followed by an infinitive: Haluan oppia.", "tarvita": "Verb. tarvitsen, tarvitset, tarvitsee. It takes the partitive: Tarvitsen apua.", "auttaa": "Verb with gradation tt → t: autan, autat, auttaa. It takes the partitive: auttaa minua.", "odottaa": "Verb with gradation tt → t: odotan, odotat, odottaa. It takes the partitive.", "avata": "Verb. avaan, avaat, avaa. Past: avasin.", "sulkea": "Verb. suljen, suljet, sulkee. Past: suljin.", "antaa": "Verb with gradation nt → nn: annan, annat, antaa.", "ottaa": "Verb with gradation tt → t: otan, otat, ottaa.", "nähdä": "Irregular verb: näen, näet, näkee. Past: näin. Nähdään = see you.", "kuulla": "Verb. kuulen, kuulet, kuulee. Past: kuulin.", "kuunnella": "Verb in -lla: kuuntelen, kuuntelet, kuuntelee. It takes the partitive.", "katsoa": "Verb. katson, katsot, katsoo. Past: katsoin. It takes the partitive.", "juosta": "Verb. juoksen, juokset, juoksee. Past: juoksin.", "kävellä": "Verb in -llä: kävelen, kävelet, kävelee. Past: kävelin.", "uida": "Verb. uin, uit, ui. Past: uin.", "laulaa": "Verb. laulan, laulat, laulaa.", "tanssia": "Verb. tanssin, tanssit, tanssii.", "kysyä": "Verb. kysyn, kysyt, kysyy. Past: kysyin.", "vastata": "Verb. vastaan, vastaat, vastaa. Past: vastasin.", "muistaa": "Verb. muistan, muistat, muistaa.", "unohtaa": "Verb with gradation ht → hd: unohdan, unohdat, unohtaa.", "löytää": "Verb with gradation t → d: löydän, löydät, löytää. Past: löysin.", "etsiä": "Verb. etsin, etsit, etsii. It takes the partitive: Etsin avainta.", "soittaa": "Verb with gradation tt → t: soitan, soitat, soittaa. Soittaa + allative.", "pestä": "Verb. pesen, peset, pesee. Past: pesin.", "siivota": "Verb. siivoan, siivoat, siivoaa.", "matkustaa": "Verb. matkustan, matkustat, matkustaa.", "maksaa": "Verb. maksan, maksat, maksaa. Also means 'costs': Se maksaa viisi euroa.", "rakastaa": "Verb. rakastan, rakastat, rakastaa. It takes the partitive: rakastan sinua.", "ajatella": "Verb in -lla with gradation t → tt: ajattelen, ajattelet, ajattelee.", "levätä": "Verb with gradation v → p: lepään, lepäät, lepää.", "aloittaa": "Verb. aloitan, aloitat, aloittaa. Past: aloitin.", "lopettaa": "Verb. lopetan, lopetat, lopettaa. Past: lopetin.", "Olen opiskelija.": "Olla (to be): minä olen. Finnish has no a/an, so just say 'opiskelija'.", "Nimeni on Anna.": "nimi + -ni (my) = nimeni. The ending -ni shows possession: my.", "Asun Helsingissä.": "Asun = I live. -ssä means 'in' (inessive), and ä is used because Helsinki has front vowels.", "Mistä olet kotoisin?": "Mistä = from where (elative). Olet = you are. Kotoisin = originally from.", "Olen kotoisin Virosta.": "-sta/-stä means 'from' (elative): Viro → Virosta. Tulen Virosta is also fine.", "Puhun vähän suomea.": "Vähän = a little, and it is followed by the partitive. Languages are partitive: suomea.", "En ymmärrä.": "Negative: en + the verb stem. The verb loses its personal ending: ymmärrän → en ymmärrä.", "Mikä sinun nimesi on?": "Mikä = what. Sinun = your. Nimesi = your name (-si).", "Kuinka vanha olet?": "Kuinka = how. Vanha = old. You don't say 'years' in the question.", "Olen kaksikymmentäviisi vuotta vanha.": "After a number, use the singular partitive: vuotta. Numbers are written as one word.", "Minulla on veli ja sisko.": "'Have' = adessive (minulla) + on. Finnish has no verb 'to have'.", "Hänellä on kaksi lasta.": "Hänellä on = he/she has. After kaksi, use the singular partitive: lasta.", "Meillä on iso talo.": "Meillä on = we have (adessive + on). Iso talo = big house.", "Työskentelen kaupassa.": "Työskennellä: gradation ll → l. Kauppa → kaupassa (pp → p) = in the shop.", "Hän työskentelee sairaalassa.": "Hän is he and she. 3rd person lengthens the last vowel: työskentelee. Sairaalassa = in hospital.", "Opiskelen suomea koulussa.": "Opiskella takes the partitive for the language (suomea). Koulussa = at school (inessive).", "Menemme kauppaan.": "Menemme = we go. Kauppaan = into the shop (illative). Mennään also works.", "Menen kotiin.": "Kotiin = home, as a destination (illative of koti).", "Olen kotona.": "Kotona = at home. It is a fixed form.", "Hän tulee töistä.": "Töistä = from work (elative plural of työ). Töissä = at work, töihin = to work.", "Bussi tulee kahdeksalta.": "Clock times use -lta/-ltä (ablative): kahdeksan → kahdeksalta = at eight.", "Herään seitsemältä.": "Herätä → herään. Time again uses the ablative: seitsemältä.", "Syön aamiaisen aamulla.": "Aamulla = in the morning. Aamiaisen: a whole meal is the total object, which looks like the genitive (-n).", "Juon kahvia.": "Drinks with no amount use the partitive: kahvia.", "En juo teetä.": "A negative sentence takes the partitive object: teetä.", "Haluatko kahvia?": "-ko makes a question. Kahvia is partitive because it is an unspecified amount.", "Haluaisin kupin teetä.": "-isi is the polite 'would'. Kupin = a cup (total object). Teetä is partitive because it is a substance.", "Paljonko se maksaa?": "Paljonko = how much (price). Se = it. Maksaa = costs.", "Se maksaa viisi euroa.": "After a number, use the singular partitive: euroa.", "Missä asema on?": "Missä = where (inessive). Word order is flexible: Missä on asema? is fine.", "Asema on lähellä.": "Lähellä = near.", "Käänny vasemmalle.": "Käänny is the command. Vasemmalle = to the left (allative).", "Käänny oikealle.": "Käänny is the command. Oikealle = to the right (allative).", "Mene suoraan eteenpäin.": "Mene = go (imperative). Suoraan = straight. Eteenpäin = forward.", "Menin eilen elokuviin.": "Past: menin. Elokuviin = to the movies (plural illative).", "Eilen olin väsynyt.": "Past of olla: olin. Väsynyt = tired.", "Viime viikolla kävimme ystävän luona.": "Viime viikolla = last week. Luona = at someone's place, and it takes the genitive: ystävän luona.", "Katsoin televisiota illalla.": "Past: katsoin. Katsoa takes the partitive: televisiota. Illalla = in the evening.", "Tänään on kylmä.": "Weather uses on + adjective, with no subject.", "Sataa.": "Sataa = it rains. There is no subject. Sataa vettä is also fine.", "Sää on kaunis.": "Sää = weather. Kaunis = beautiful.", "Talvella on paljon lunta.": "Talvella = in winter. Paljon (a lot) is followed by the partitive: lunta.", "Pidän kesästä.": "Pitää (like) takes the elative: kesä → kesästä.", "Pidän kahvista.": "Pitää (like) takes the elative: kahvi → kahvista.", "Rakastan sinua.": "Rakastaa takes the partitive. The partitive of sinä is sinua.", "Minulla ei ole aikaa.": "Negative 'have': minulla ei ole + partitive. Aika → aikaa.", "Onko sinulla auto?": "Question: verb + ko comes first. Sinulla = you have (adessive).", "Tarvitsen apua.": "Tarvita takes the partitive: apu → apua.", "Voitko auttaa minua?": "Voit + ko = can you. Auttaa takes the partitive: minä → minua.", "Anteeksi, missä vessa on?": "Anteeksi = excuse me/sorry. Missä = where. Vessa = toilet.", "Kiitos paljon.": "Kiitos = thank you. Paljon = a lot.", "Olen pahoillani.": "Pahoillani = sorry (literally 'my regretful'), with the ending -ni.", "Hyvää huomenta!": "Greetings use the partitive: hyvä → hyvää, huomen → huomenta.", "Hyvää yötä!": "Greetings use the partitive: hyvä → hyvää, yö → yötä.", "Nähdään huomenna.": "Nähdään is the passive = we'll see each other. Huomenna = tomorrow.", "Hauska tavata.": "Hauska = nice. Tavata = to meet.", "Mitä kuuluu?": "Mitä = what (partitive of mikä). Kuuluu = is heard/how are things.", "Voin hyvin.": "Voida = to be able/to feel. Hyvin = well (adverb of hyvä).", "Minulla on nälkä.": "Feelings use adessive + on + noun: minulla on nälkä (literally hunger is on me).", "Minulla on jano.": "Feelings use adessive + on + noun: minulla on jano.", "Minulla on kylmä.": "Feelings use adessive + on + adjective/noun: minulla on kylmä.", "Pelkään koiraa.": "Pelätä takes the partitive: koira → koiraa.", "Kirja on pöydällä.": "-llä = on. Pöytä → pöydällä (gradation t → d).", "Kissa on tuolin alla.": "Alla (under) comes after the genitive: tuoli → tuolin.", "Kauppa on koulun takana.": "Takana (behind) comes after the genitive: koulu → koulun.", "Lapset ovat puutarhassa.": "Plural subject, so the verb is ovat. Puutarhassa = in the garden.", "Laitan kirjan laukkuun.": "Kirjan = whole object (genitive-looking -n). Laukkuun = into the bag (illative).", "Menen töihin bussilla.": "Töihin = to work. Bussilla = by bus (adessive for transport).", "Menen töihin pyörällä.": "Töihin = to work. Pyörällä = by bike (adessive for transport).", "Hän lukee kirjaa joka ilta.": "Joka ilta = every evening. Lukea takes the partitive while the reading is ongoing: kirjaa.", "Syömme illallista kuudelta.": "Syömme = we eat. Kuudelta = at six (ablative). Illallista is partitive (unfinished/general).", "Suomi ei ole vaikeaa.": "Negative 'is' takes the partitive for the adjective: vaikeaa.", "Puhu hitaasti, kiitos.": "Puhu = speak (command). Hitaasti = slowly, from hidas.", "Voinko maksaa kortilla?": "Voin + ko = can I. Kortilla = by card (adessive).", "Haluaisin ostaa lipun.": "Haluaisin = I would like. Lipun = whole object (-n).", "Milloin juna lähtee?": "Milloin = when. Lähteä → lähtee (3rd person).", "Juna on myöhässä.": "Myöhässä = late (inessive of myöhä).", "Paljonko kello on?": "Kello = clock/time. Paljonko = how much.", "Kello on puoli neljä.": "Finnish says 'half four' for 3:30: puoli + the next hour.", "Kello on kymmenen.": "Kello on + the number. No word for 'o'clock'.", "Puhelimeni on rikki.": "Puhelin → puhelimeni (my phone). Rikki = broken.", "Kadotin avaimeni.": "Past: kadotin. Avain → avaimeni (my key). -ni = my.", "Löysin avaimeni.": "Past: löytää → löysin. Avaimeni = my keys.", "Hän ei puhu englantia.": "Negative: ei + the stem puhu. The language is partitive: englantia.", "He asuvat Tampereella.": "He = they. Asuvat = they live. Tampereella = in Tampere (-lla with some city names).", "Olemme väsyneitä.": "Plural predicate after olemme uses the partitive: väsyneitä. (Olemme väsyneet is fine too.)", "Tuletko juhliin?": "Tulet + ko = are you coming. Juhliin = to the party (plural illative).", "En voi tulla huomenna.": "En voi = I cannot, followed by the infinitive tulla.", "Minun täytyy mennä nyt.": "'Must' = genitive subject + täytyy/pitää + infinitive: minun täytyy mennä.", "Osaan uida.": "Osata = can (know how to). Followed by the infinitive.", "Haluan oppia suomea.": "Haluta + infinitive. Oppia takes the partitive for languages: suomea.", "Hän ei ole kotona.": "Negative: ei + ole. Kotona = at home.", "En tiedä.": "Negative: en + the stem. Tietää → tiedä.", "Luulen niin.": "Luulla = to think/suppose. Niin = so.", "Mikä tämä on?": "Mikä asks about things. Tämä = this.", "Kuka tuo on?": "Kuka asks about people. Tuo = that.", "Tässä on siskoni.": "Tässä = here. Siskoni = my sister (-ni).", "Punainen auto on kallis.": "The adjective stays in the nominative: punainen auto, kallis.", "Minulla on uusi puhelin.": "Minulla on = I have. Uusi = new.", "Tämä on hyvä kirja.": "Tämä on = this is. Hyvä kirja = good book."};
+const GEN_SPECIAL={"pöydän":"Gradation t → d: pöytä → pöydän.","kaupan":"Gradation pp → p: kauppa → kaupan.","äidin":"Gradation t → d: äiti → äidin.","veljen":"The stem of veli is velje-: veljen.","miehen":"The stem of mies is miehe-: miehen.","huoneen":"Huone doubles its last vowel: huoneen.","lapsen":"Lapsi changes i to e: lapsen.","Pekan":"Gradation kk → k: Pekka → Pekan.","lasten":"Plural genitive of lapsi is irregular: lapset → lasten.","naisten":"Plural genitive: naiset → naisten.","ystävien":"Plural genitive: ystävät → ystävien.","opiskelijan":"Add -n to the stem: opiskelija → opiskelijan.","aseman":"Add -n to the stem: asema → aseman."};
+const PAR_SPECIAL={"vettä":"Vesi has the stem vete-: vettä.","lasta":"Lapsi has the stem lapse-: lasta (after a number).","miestä":"Mies has the stem miehe-, partitive miestä.","teetä":"Tee is a long-vowel noun: teetä.","olutta":"Olut → olutta (-ta after a consonant-final stem).","aikaa":"Aika → aikaa.","sinua":"Pronoun: sinä → sinua.","minua":"Pronoun: minä → minua.","oppilasta":"Oppilas → oppilasta (-ta after -s).","euroa":"Euro → euroa.","kenkiä":"Plural partitive: kengät → kenkiä (gradation ng → nk).","ihmisiä":"Plural partitive: ihmiset → ihmisiä.","lapsia":"Plural partitive: lapset → lapsia.","marjoja":"Plural partitive: marjat → marjoja (-ja after a).","kukkia":"Plural partitive: kukat → kukkia.","perunoita":"Plural partitive: perunat → perunoita (-oita after a).","omenoita":"Plural partitive: omenat → omenoita (-oita after a).","autoja":"Plural partitive: autot → autoja.","lautasia":"Plural partitive: lautaset → lautasia.","kirjoja":"Plural partitive: kirjat → kirjoja.","jäätelöä":"Jäätelö → jäätelöä (ä/ö words take ä).","keittoa":"Keitto → keittoa.","mehua":"Mehu → mehua.","juustoa":"Juusto → juustoa."};
+const POSTS=["edessä","takana","vieressä","alla","päällä","lähellä","luona","kanssa","jälkeen"];
+function why(it){
+  if(it.type==="mc")return it.why;
+  if(it.type!=="gap")return EXP[it.ans[0]]||"";
+  const a=it.ans[0],out=[];
+  if(it.kind==="gen"){
+    const post=POSTS.find(w=>it.sent.includes(" "+w+" ")||it.sent.includes(" "+w+"."));
+    if(/^(minä|sinä|hän|me|te|he)$/.test(it.base))out.push("Genitive of pronouns is irregular: minä → minun, sinä → sinun, hän → hänen, me → meidän, te → teidän, he → heidän. It shows whose it is.");
+    else if(post)out.push("'"+post+"' comes after a genitive: "+it.base+" → "+a+".");
+    else if(it.note==="total object")out.push("A whole, finished object takes the genitive-looking -n form: "+it.base+" → "+a+".");
+    else out.push("Genitive shows possession (whose?). Add -n to the word stem: "+it.base+" → "+a+".");
+    if(it.note==="plural")out.push("Plural genitive usually ends in -en, -ten or -ien.");
+    if(GEN_SPECIAL[a])out.push(GEN_SPECIAL[a]);
+    out.push("Remember: the genitive always ends in -n.");
+  }else{
+    let r;
+    if(it.note==="after a number")r="After a number (two and up), use the singular partitive: "+it.base+" → "+a+".";
+    else if(it.note==="negative sentence")r="A negative sentence takes the partitive object: "+it.base+" → "+a+".";
+    else if(it.note==="plural")r="A plural with no fixed amount takes the plural partitive: "+it.base+" → "+a+".";
+    else if(it.note==="ongoing action")r="An unfinished action takes the partitive: "+it.base+" → "+a+".";
+    else if(/Rakast|Tarvits|Odotan|Etsin|Kuuntelen|Katson|Voitko auttaa|Puhun|Opiskelen|Pelaan|Pelk/.test(it.sent))r="This verb always takes the partitive: "+it.base+" → "+a+".";
+    else if(/paljon|vähän|monta|lisää/.test(it.sent))r="After a quantity word (paljon, vähän, monta, lisää) use the partitive: "+it.base+" → "+a+".";
+    else r="Use the partitive for an unspecified amount or a substance (some coffee, some bread): "+it.base+" → "+a+".";
+    out.push(r);
+    if(PAR_SPECIAL[a])out.push(PAR_SPECIAL[a]);
+    out.push("Partitive endings: -a/-ä, -ta/-tä, plural -ia/-iä/-ja/-jä/-oita.");
+  }
+  return out.join(" ");
+}
+function whyHtml(it){const w=why(it);return w?'<span class="why"><b>Why:</b> '+esc(w)+"</span>":""}
+
 /* ---------- UI ---------- */
 const $=s=>document.querySelector(s);
 const el={ticks:$("#ticks"),count:$("#count"),quiz:$("#quiz"),done:$("#done"),kind:$("#kind"),again:$("#again"),prompt:$("#prompt"),english:$("#english"),hint:$("#hint"),f:$("#f"),ans:$("#ans"),fb:$("#fb"),go:$("#go")};
@@ -381,12 +429,21 @@ function render(){
     el.english.hidden=false;el.english.textContent=it.en;
     el.hint.hidden=false;
     el.hint.innerHTML="<span>"+esc(it.base)+" → "+(it.kind==="gen"?"genetiivi":"partitiivi")+"</span>"+(it.note?"<span>"+esc(it.note)+"</span>":"");
+  }else if(it.type==="mc"){
+    el.kind.textContent="Multiple choice · kpt";
+    el.prompt.innerHTML=esc(it.q).replace("___",'<span class="blank">aaaa</span>');
+    el.english.hidden=false;el.english.textContent=it.hint;
+    el.hint.hidden=true;
   }else{
     el.kind.textContent=it.type==="word"?"Translate the word":"Translate the sentence";
     el.prompt.textContent=it.en;
     el.english.hidden=true;el.hint.hidden=true;
   }
 
+  const isMC=it.type==="mc";
+  el.ans.hidden=isMC;$("#keys").hidden=isMC;$("#opts").hidden=!isMC;
+  if(isMC){renderMC(it);return}
+  el.go.hidden=false;
   el.ans.className="";el.fb.hidden=true;el.fb.className="fb";
   const ph=ST.phase;
   if(ph==="ask"){
@@ -403,6 +460,22 @@ function render(){
     showRetypeOk(it);el.go.textContent="Next";el.go.focus();
   }
 }
+function renderMC(it){
+  const locked=ST.phase==="right"||ST.phase==="retypeOK";
+  const order=shuffle(it.opts,DAYIDX*131+[...it.id].reduce((a,c)=>a+c.charCodeAt(0),0));
+  $("#opts").innerHTML=order.map(o=>'<button type="button" class="opt'+(locked&&matches(it,o)?" ok":"")+'" data-v="'+esc(o)+'"'+(locked?" disabled":"")+">"+esc(o)+"</button>").join("");
+  el.fb.hidden=true;el.fb.className="fb";
+  if(ST.phase==="right")showOk(it);
+  else if(ST.phase==="retypeOK")showRetypeOk(it);
+  else if(ST.phase==="retype")showMiss(it,false);
+  el.go.hidden=!locked;
+  if(locked){el.go.textContent="Next";el.go.focus()}
+}
+$("#opts").addEventListener("click",e=>{
+  const b=e.target.closest(".opt");if(!b||b.disabled)return;
+  if(ST.phase!=="ask"&&ST.phase!=="retype")return;
+  check(ITEMS[ST.queue[ST.pos]],b.dataset.v);
+});
 function showOk(it){
   el.fb.hidden=false;el.fb.className="fb ok";
   const extra=it.ans.length>1?'<span class="small">Also accepted: '+it.ans.slice(1).map(esc).join(" · ")+"</span>":"";
@@ -413,14 +486,17 @@ function showOk(it){
 function showMiss(it,wrongTry,typed){
   el.fb.hidden=false;el.fb.className="fb bad";
   let h="";
-  if(wrongTry){
-    h="<strong>Not exact yet.</strong><span class=\"diff\">"+diffHtml(it,typed)+'</span><span class="small">Red letters differ from the answer. Look again and retype it.</span>';
+  if(wrongTry&&it.type==="mc"){
+    h="<strong>Not that one.</strong>"+'<span class="answer">'+esc(it.ans[0])+"</span>"+whyHtml(it)+'<span class="small">Choose the correct answer to continue.</span>';
+  }else if(wrongTry){
+    h="<strong>Not exact yet.</strong><span class=\"diff\">"+diffHtml(it,typed)+'</span><span class="small">Red letters differ from the answer. Look again and retype it.</span>'+whyHtml(it);
   }else{
     h="<strong>Not quite. The answer is:</strong>";
     h+='<span class="answer">'+esc(it.ans[0])+"</span>";
     if(it.ans.length>1)h+='<span class="small">Also accepted: '+it.ans.slice(1).map(esc).join(" · ")+"</span>";
     if(ST.lastTyped)h+='<span class="small">You wrote: '+esc(ST.lastTyped)+"</span>";
-    h+='<span class="small">Type it exactly to continue. This question comes back after 5 more questions.</span>';
+    h+=whyHtml(it);
+    h+='<span class="small">Type it exactly (or choose it) to continue. This question comes back after every 5 questions.</span>';
   }
   el.fb.innerHTML=h;
 }
@@ -434,9 +510,13 @@ function next(){ST.pos++;ST.phase="ask";ST.lastTyped="";save();render()}
 el.f.addEventListener("submit",e=>{
   e.preventDefault();
   if(ST.phase==="right"||ST.phase==="retypeOK"){next();return}
+  const it=ITEMS[ST.queue[ST.pos]];
+  if(it.type==="mc")return;
   const typed=el.ans.value;
   if(!typed.trim())return;
-  const it=ITEMS[ST.queue[ST.pos]];
+  check(it,typed);
+});
+function check(it,typed){
   const ok=matches(it,typed);
   if(ST.phase==="ask"){
     ST.attempts++;
@@ -468,10 +548,10 @@ el.f.addEventListener("submit",e=>{
     else{
       el.ans.classList.add("bad");el.ans.classList.remove("shake");void el.ans.offsetWidth;el.ans.classList.add("shake");
       showMiss(it,true,typed);
-      el.ans.select();
+      if(it.type!=="mc")el.ans.select();
     }
   }
-});
+}
 
 document.querySelectorAll(".key").forEach(b=>{
   b.addEventListener("mousedown",e=>e.preventDefault());
