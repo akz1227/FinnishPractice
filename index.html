@@ -1,0 +1,477 @@
+<title>Päivän Suomi</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Instrument+Sans:wght@400..650&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one centred column. A row of progress ticks (one per question) sits above a single large question card; the prompt is the loudest thing on the page. */
+/* Midnight Rose: deep charcoal ground, dusty rose for actions, champagne gold for emphasis. Single dark look by choice. */
+:root{
+  --paper:#1A1A1A; --card:#232121; --ink:#F4ECE6; --muted:#ADA096; --line:#3B3634;
+  --lake:#E29578; --on-lake:#1A1A1A; --lake-soft:#3A2A23;
+  --gold:#EDC48A;
+  --ok:#A5D3A0; --ok-soft:#232F24; --bad:#F2766E; --bad-soft:#40211F;
+  --f-display:"Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;
+  --f-body:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5;
+  padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+.top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+h1{color:var(--gold);font-family:var(--f-display);font-weight:800;font-size:2rem;line-height:1;margin:0;letter-spacing:-.02em}
+.sub{margin:6px 0 0;color:var(--muted);font-size:.9rem}
+.meta{display:flex;gap:8px;flex-wrap:wrap;font-family:var(--f-mono);font-size:.78rem;color:var(--muted)}
+.meta span{border:1px solid var(--line);border-radius:999px;padding:3px 10px;white-space:nowrap}
+
+.ticks{display:grid;grid-template-columns:repeat(auto-fit,minmax(10px,1fr));gap:4px}
+.tick{height:8px;border-radius:2px;background:var(--line)}
+.tick.ok{background:var(--ok)}
+.tick.bad{background:var(--bad)}
+.tick.cur{background:var(--gold);transform:scaleY(1.9)}
+.count{margin:8px 0 0;font-family:var(--f-mono);font-size:.78rem;color:var(--muted);display:flex;gap:6px 16px;flex-wrap:wrap}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{font-size:.72rem;text-transform:uppercase;letter-spacing:.09em;font-weight:600;color:var(--lake);background:var(--lake-soft);border-radius:6px;padding:4px 9px}
+.chip.warn{color:var(--bad);background:var(--bad-soft)}
+.prompt{font-family:var(--f-display);font-weight:700;font-size:clamp(1.65rem,6vw,2.35rem);line-height:1.15;margin:0;letter-spacing:-.015em;text-wrap:balance;overflow-wrap:anywhere}
+.blank{display:inline-block;min-width:3.2ch;border-bottom:3px solid var(--gold);color:transparent;user-select:none;margin-inline:.1em}
+.english{margin:0;color:var(--muted);font-size:1.02rem}
+.hint{margin:0;display:flex;gap:8px;flex-wrap:wrap;font-family:var(--f-mono);font-size:.82rem}
+.hint span{border:1px solid var(--line);border-radius:6px;padding:3px 9px}
+
+form{display:flex;flex-direction:column;gap:12px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+#ans{width:100%;font:inherit;font-size:1.3rem;padding:14px 16px;border-radius:10px;border:2px solid var(--line);background:var(--paper);color:var(--ink)}
+#ans:focus{outline:none;border-color:var(--gold)}
+#ans.ok{border-color:var(--ok)}
+#ans.bad{border-color:var(--bad)}
+#ans:disabled{opacity:1;-webkit-text-fill-color:var(--ink)}
+.keys{display:flex;gap:8px}
+.key{font:inherit;font-size:1.05rem;min-width:44px;height:40px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+.key:hover{border-color:var(--gold)}
+.go,.again{font:inherit;font-weight:600;font-size:1.05rem;border:0;border-radius:10px;padding:14px 20px;background:var(--lake);color:var(--on-lake);cursor:pointer}
+.again{background:transparent;color:var(--lake);border:2px solid var(--lake)}
+.go:focus-visible,.key:focus-visible,.again:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+
+.fb{border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.fb.ok{background:var(--ok-soft);color:var(--ok)}
+.fb.bad{background:var(--bad-soft);color:var(--bad)}
+.fb strong{font-weight:650}
+.fb .answer{font-family:var(--f-mono);font-size:1.25rem;color:var(--ink);overflow-wrap:anywhere}
+.fb .small{font-size:.9rem;color:var(--ink)}
+.fb .diff{font-family:var(--f-mono);font-size:1.1rem;color:var(--ink);overflow-wrap:anywhere}
+.wrongch{color:var(--bad);text-decoration:underline;font-weight:600}
+.miss{color:var(--bad);font-weight:600}
+.shake{animation:shake .32s}
+@keyframes shake{20%{transform:translateX(-6px)}60%{transform:translateX(6px)}100%{transform:none}}
+@media (prefers-reduced-motion:reduce){.shake{animation:none}}
+
+#done h2{font-family:var(--f-display);font-size:1.7rem;margin:0}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.stat{border:1px solid var(--line);border-radius:10px;padding:12px}
+.stat b{color:var(--gold);display:block;font-family:var(--f-mono);font-size:1.6rem;font-weight:500}
+.stat span{color:var(--muted);font-size:.85rem}
+.review{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.review li{border-top:1px solid var(--line);padding-top:8px;overflow-wrap:anywhere}
+.review small{display:block;color:var(--muted)}
+.review code{font-family:var(--f-mono);color:var(--ok)}
+.rules{margin:0;color:var(--muted);font-size:.86rem}
+</style>
+
+<main class="wrap">
+  <header class="top">
+    <div>
+      <h1>Päivän Suomi</h1>
+      <p class="sub">Finnish A2 daily practice: vocabulary, genitiivi and partitiivi</p>
+    </div>
+    <div class="meta"><span id="date"></span><span id="streak"></span></div>
+  </header>
+
+  <section aria-label="Progress">
+    <div id="ticks" class="ticks"></div>
+    <p id="count" class="count"></p>
+  </section>
+
+  <section id="quiz" class="card">
+    <div class="chips"><span id="kind" class="chip"></span><span id="again" class="chip warn" hidden>Repeat</span></div>
+    <p id="prompt" class="prompt"></p>
+    <p id="english" class="english" hidden></p>
+    <p id="hint" class="hint" hidden></p>
+    <form id="f" autocomplete="off">
+      <label for="ans" class="sr">Your answer in Finnish</label>
+      <input id="ans" type="text" lang="fi" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Kirjoita vastaus…">
+      <div class="keys" aria-label="Special letters">
+        <button class="key" type="button" data-ch="ä">ä</button>
+        <button class="key" type="button" data-ch="ö">ö</button>
+        <button class="key" type="button" data-ch="å">å</button>
+      </div>
+      <div id="fb" class="fb" hidden role="status" aria-live="polite"></div>
+      <button id="go" class="go" type="submit">Check</button>
+    </form>
+  </section>
+
+  <section id="done" class="card" hidden>
+    <h2>Hyvää työtä! Today is done.</h2>
+    <div id="stats" class="stats"></div>
+    <div id="missedBox" hidden>
+      <p><strong>Questions you had to repeat</strong></p>
+      <ul id="missedList" class="review"></ul>
+    </div>
+    <p class="english">A new set of questions opens tomorrow.</p>
+    <button id="redo" class="again" type="button">Practise today's set again</button>
+  </section>
+
+  <p class="rules">Spelling must be exact, including ä and ö. Capital letters and punctuation are not checked. If you miss a question, you see the answer, type it exactly, and the question returns after 5 more questions until you get it right.</p>
+</main>
+
+<script>
+/* ---------- Question bank ---------- */
+const W=[
+["house","talo"],["car","auto"],["book","kirja"],["water","vesi"],["coffee","kahvi"],["milk","maito"],["bread","leipä"],["cheese","juusto"],["butter","voi"],["egg","muna"],
+["apple","omena"],["fish","kala"],["meat","liha"],["potato","peruna"],["rice","riisi"],["breakfast","aamiainen"],["lunch","lounas"],["dinner","illallinen"],["school","koulu"],["teacher","opettaja"],
+["student","opiskelija"],["friend","ystävä"],["family","perhe"],["mother","äiti"],["father","isä"],["sister","sisko"],["brother","veli"],["child","lapsi"],["woman","nainen"],["man","mies"],
+["dog","koira"],["cat","kissa"],["bird","lintu"],["city","kaupunki"],["street","katu"],["shop","kauppa"],["bus","bussi"],["train","juna"],["station","asema"],["airport","lentokenttä"],
+["ticket","lippu"],["money","raha"],["work (noun)","työ"],["office","toimisto"],["doctor","lääkäri"],["hospital","sairaala"],["pharmacy","apteekki"],["weather","sää"],["rain","sade"],["snow","lumi"],
+["sun","aurinko"],["summer","kesä"],["winter","talvi"],["spring (season)","kevät"],["autumn","syksy"],["morning","aamu"],["evening","ilta"],["night","yö"],["week","viikko"],["month","kuukausi"],
+["year","vuosi"],["today","tänään"],["tomorrow","huomenna"],["yesterday","eilen"],["always","aina"],["never","ei koskaan"],["often","usein"],["sometimes","joskus"],["big",["iso","suuri"]],["small","pieni"],
+["new","uusi"],["old","vanha"],["good","hyvä"],["bad",["huono","paha"]],["cheap","halpa"],["expensive","kallis"],["cold","kylmä"],["warm","lämmin"],["hot","kuuma"],["beautiful","kaunis"],
+["difficult","vaikea"],["easy","helppo"],["fast","nopea"],["slow","hidas"],["happy","iloinen"],["tired","väsynyt"],["hungry","nälkäinen"],["thirsty","janoinen"],["red","punainen"],["blue","sininen"],
+["to be","olla"],["to go","mennä"],["to come","tulla"],["to eat","syödä"],["to drink","juoda"],["to sleep","nukkua"],["to read","lukea"],["to write","kirjoittaa"],["to speak","puhua"],["to understand","ymmärtää"],
+["to buy","ostaa"],["to sell","myydä"],["to live (reside)","asua"],["to work",["työskennellä","tehdä työtä"]],["to study","opiskella"],["to learn","oppia"],["to know (a fact)","tietää"],["to know (a person)","tuntea"],["to want","haluta"],["to need","tarvita"],
+["to help","auttaa"],["to wait","odottaa"],["to open","avata"],["to close","sulkea"],["to give","antaa"],["to take","ottaa"],["to see","nähdä"],["to hear","kuulla"],["to listen","kuunnella"],["to watch","katsoa"],
+["to run","juosta"],["to walk","kävellä"],["to swim","uida"],["to sing","laulaa"],["to dance","tanssia"],["to ask","kysyä"],["to answer","vastata"],["to remember","muistaa"],["to forget","unohtaa"],["to find","löytää"],
+["to look for","etsiä"],["to call (phone)","soittaa"],["to wash","pestä"],["to clean","siivota"],["to travel","matkustaa"],["to pay","maksaa"],["to love","rakastaa"],["to think","ajatella"],["to rest","levätä"],["to begin","aloittaa"],["to finish","lopettaa"]
+];
+const S=[
+["I am a student.","Olen opiskelija."],["My name is Anna.","Nimeni on Anna."],["I live in Helsinki.","Asun Helsingissä."],["Where are you from?","Mistä olet kotoisin?"],
+["I come from Estonia.",["Olen kotoisin Virosta.","Tulen Virosta."]],["I speak a little Finnish.","Puhun vähän suomea."],["I do not understand.","En ymmärrä."],
+["What is your name?",["Mikä sinun nimesi on?","Mikä on nimesi?","Mikä nimesi on?"]],["How old are you?",["Kuinka vanha olet?","Kuinka vanha sinä olet?","Minkä ikäinen olet?"]],
+["I am twenty-five years old.","Olen kaksikymmentäviisi vuotta vanha."],["I have a brother and a sister.","Minulla on veli ja sisko."],["She has two children.","Hänellä on kaksi lasta."],
+["We have a big house.",["Meillä on iso talo.","Meillä on suuri talo."]],["I work in a shop.",["Työskentelen kaupassa.","Olen töissä kaupassa.","Teen työtä kaupassa."]],
+["He works in a hospital.",["Hän työskentelee sairaalassa.","Hän on töissä sairaalassa."]],["I study Finnish at school.","Opiskelen suomea koulussa."],
+["We are going to the shop.",["Menemme kauppaan.","Mennään kauppaan."]],["I am going home.","Menen kotiin."],["I am at home.","Olen kotona."],["He comes from work.","Hän tulee töistä."],
+["The bus comes at eight.","Bussi tulee kahdeksalta."],["I wake up at seven.","Herään seitsemältä."],["I eat breakfast in the morning.",["Syön aamiaisen aamulla.","Syön aamiaista aamulla."]],
+["I drink coffee.","Juon kahvia."],["I do not drink tea.","En juo teetä."],["Do you want coffee?","Haluatko kahvia?"],["I would like a cup of tea.","Haluaisin kupin teetä."],
+["How much does it cost?",["Paljonko se maksaa?","Kuinka paljon se maksaa?"]],["It costs five euros.","Se maksaa viisi euroa."],["Where is the station?",["Missä asema on?","Missä on asema?"]],
+["The station is near.","Asema on lähellä."],["Turn left.","Käänny vasemmalle."],["Turn right.","Käänny oikealle."],["Go straight ahead.",["Mene suoraan eteenpäin.","Mene suoraan."]],
+["I went to the cinema yesterday.",["Menin eilen elokuviin.","Menin elokuviin eilen.","Kävin eilen elokuvissa.","Kävin elokuvissa eilen."]],["Yesterday I was tired.",["Eilen olin väsynyt.","Olin eilen väsynyt."]],
+["Last week we visited a friend.",["Viime viikolla kävimme ystävän luona.","Kävimme viime viikolla ystävän luona.","Viime viikolla vierailimme ystävän luona."]],
+["I watched television in the evening.",["Katsoin televisiota illalla.","Katsoin illalla televisiota."]],["It is cold today.",["Tänään on kylmä.","On kylmä tänään."]],["It is raining.",["Sataa.","Sataa vettä.","Vettä sataa."]],
+["The weather is beautiful.",["Sää on kaunis.","Ilma on kaunis."]],["In winter there is a lot of snow.","Talvella on paljon lunta."],["I like summer.","Pidän kesästä."],["I like coffee.","Pidän kahvista."],
+["I love you.","Rakastan sinua."],["I do not have time.","Minulla ei ole aikaa."],["Do you have a car?","Onko sinulla auto?"],["I need help.","Tarvitsen apua."],
+["Can you help me?",["Voitko auttaa minua?","Voisitko auttaa minua?"]],["Excuse me, where is the toilet?",["Anteeksi, missä vessa on?","Anteeksi, missä on vessa?"]],["Thank you very much.","Kiitos paljon."],
+["I am sorry.","Olen pahoillani."],["Good morning!","Hyvää huomenta!"],["Good night!","Hyvää yötä!"],["See you tomorrow.","Nähdään huomenna."],["Nice to meet you.","Hauska tavata."],
+["How are you?",["Mitä kuuluu?","Mitä sinulle kuuluu?"]],["I am well.","Voin hyvin."],["I am hungry.","Minulla on nälkä."],["I am thirsty.","Minulla on jano."],["I am cold.",["Minulla on kylmä.","Minun on kylmä."]],
+["I am afraid of the dog.","Pelkään koiraa."],["The book is on the table.","Kirja on pöydällä."],["The cat is under the chair.","Kissa on tuolin alla."],["The shop is behind the school.","Kauppa on koulun takana."],
+["The children are in the garden.","Lapset ovat puutarhassa."],["I put the book in the bag.","Laitan kirjan laukkuun."],["I go to work by bus.",["Menen töihin bussilla.","Menen bussilla töihin."]],
+["I go to work by bike.",["Menen töihin pyörällä.","Menen pyörällä töihin."]],["She reads a book every evening.",["Hän lukee kirjaa joka ilta.","Hän lukee joka ilta kirjaa."]],
+["We eat dinner at six.",["Syömme illallista kuudelta.","Syömme illallisen kuudelta."]],["Finnish is not difficult.",["Suomi ei ole vaikeaa.","Suomi ei ole vaikea."]],["Please speak slowly.",["Puhu hitaasti, kiitos.","Puhu hitaasti."]],
+["Can I pay by card?","Voinko maksaa kortilla?"],["I would like to buy a ticket.","Haluaisin ostaa lipun."],["When does the train leave?","Milloin juna lähtee?"],["The train is late.","Juna on myöhässä."],
+["What time is it?",["Paljonko kello on?","Mitä kello on?"]],["It is half past three.","Kello on puoli neljä."],["It is ten o'clock.","Kello on kymmenen."],["My phone is broken.","Puhelimeni on rikki."],
+["I lost my keys.","Kadotin avaimeni."],["I found my keys.","Löysin avaimeni."],["He does not speak English.","Hän ei puhu englantia."],["They live in Tampere.","He asuvat Tampereella."],
+["We are tired.",["Olemme väsyneitä.","Olemme väsyneet."]],["Are you coming to the party?","Tuletko juhliin?"],["I cannot come tomorrow.","En voi tulla huomenna."],
+["I must go now.",["Minun täytyy mennä nyt.","Minun pitää mennä nyt."]],["I can swim.","Osaan uida."],["I want to learn Finnish.",["Haluan oppia suomea.","Haluan oppia suomen kieltä."]],
+["She is not at home.","Hän ei ole kotona."],["I do not know.","En tiedä."],["I think so.","Luulen niin."],["What is this?","Mikä tämä on?"],["Who is that?","Kuka tuo on?"],
+["Here is my sister.","Tässä on siskoni."],["The red car is expensive.","Punainen auto on kallis."],["I have a new phone.","Minulla on uusi puhelin."],["This is a good book.","Tämä on hyvä kirja."]
+];
+/* [sentence, English, base word, answer(s), case, optional note] */
+const G=[
+["Tämä on ___ kirja.","This is my book.","minä","minun","gen"],
+["Se on ___ auto.","It is Matti's car.","Matti","Matin","gen"],
+["Missä on ___ puhelin?","Where is your phone?","sinä","sinun","gen"],
+["Tuo on ___ talo.","That is the teacher's house.","opettaja","opettajan","gen"],
+["Kissa istuu ___ edessä.","The cat sits in front of the house.","talo","talon","gen"],
+["Kauppa on ___ vieressä.","The shop is next to the school.","koulu","koulun","gen"],
+["Auto on ___ takana.","The car is behind the house.","talo","talon","gen"],
+["Lapsi leikkii ___ kanssa.","The child plays with mum.","äiti","äidin","gen"],
+["Tulen kotiin ___ jälkeen.","I come home after work.","työ","työn","gen"],
+["Hän asuu ___ luona.","She lives at a friend's place.","ystävä","ystävän","gen"],
+["Koira on ___ alla.","The dog is under the table.","pöytä","pöydän","gen"],
+["Kahvila on ___ lähellä.","The café is near the station.","asema","aseman","gen"],
+["Opiskelen ___ kanssa.","I study with a friend.","kaveri","kaverin","gen"],
+["Tämä on ___ koti.","This is the child's home.","lapsi","lapsen","gen"],
+["Nainen on ___ sisko.","The woman is Pekka's sister.","Pekka","Pekan","gen"],
+["Se on ___ hattu.","It is the man's hat.","mies","miehen","gen"],
+["Se on ___ ikkuna.","It is the room's window.","huone","huoneen","gen"],
+["Tuo on ___ osoite.","That is his/her address.","hän","hänen","gen"],
+["Tämä on ___ auto.","This is our car.","me","meidän","gen"],
+["Se on ___ koira.","It is your (plural) dog.","te","teidän","gen"],
+["Se on ___ talo.","It is their house.","he","heidän","gen"],
+["Nämä ovat ___ lelut.","These are the children's toys.","lapset","lasten","gen","plural"],
+["Nämä ovat ___ kengät.","These are the women's shoes.","naiset","naisten","gen","plural"],
+["Se on ___ talo.","It is the friends' house.","ystävät","ystävien","gen","plural"],
+["Tämä on ___ huone.","This is the student's room.","opiskelija","opiskelijan","gen"],
+["Ostin uuden ___.","I bought a new car.","auto","auton","gen","total object"],
+["Luin ___ eilen.","I read the book yesterday.","kirja","kirjan","gen","total object"],
+["Kissa on ___ päällä.","The cat is on top of the car.","auto","auton","gen"],
+["Hän on ___ ystävä.","He is Anna's friend.","Anna","Annan","gen"],
+["Missä on ___ avain?","Where is my sister's key?","sisko","siskon","gen"],
+["Kirja on ___ laukussa.","The book is in Liisa's bag.","Liisa","Liisan","gen"],
+["Tapaamme ___ edessä.","We meet in front of the shop.","kauppa","kaupan","gen"],
+["Bussipysäkki on ___ vieressä.","The bus stop is next to the hospital.","sairaala","sairaalan","gen"],
+["Istun ___ vieressä.","I sit next to my brother.","veli","veljen","gen"],
+["Haluan ___.","I want coffee.","kahvi","kahvia","par"],
+["Juon ___ aamulla.","I drink tea in the morning.","tee","teetä","par"],
+["Syön ___.","I eat bread.","leipä","leipää","par"],
+["Ostan ___ kaupasta.","I buy milk from the shop.","maito","maitoa","par"],
+["Tarvitsen ___.","I need help.","apu","apua","par"],
+["Rakastan ___.","I love you.","sinä","sinua","par"],
+["Minulla on kaksi ___.","I have two cats.","kissa","kissaa","par","after a number"],
+["Tarvitsen kolme ___.","I need three books.","kirja","kirjaa","par","after a number"],
+["Siellä on viisi ___.","There are five children there.","lapsi","lasta","par","after a number"],
+["Ostin kymmenen ___.","I bought ten apples.","omena","omenaa","par","after a number"],
+["Meillä on kaksi ___.","We have two cars.","auto","autoa","par","after a number"],
+["Pöydällä on neljä ___.","There are four cups on the table.","kuppi","kuppia","par","after a number"],
+["Luokassa on kaksikymmentä ___.","There are twenty students in the class.","oppilas","oppilasta","par","after a number"],
+["Minulla on monta ___.","I have many friends.","ystävä","ystävää","par"],
+["Kupissa on vähän ___.","There is a little water in the cup.","vesi","vettä","par"],
+["Pullossa on ___.","There is beer in the bottle.","olut","olutta","par"],
+["En juo ___.","I do not drink coffee.","kahvi","kahvia","par","negative sentence"],
+["Minulla ei ole ___.","I do not have a car.","auto","autoa","par","negative sentence"],
+["Hänellä ei ole ___.","He has no time.","aika","aikaa","par","negative sentence"],
+["Emme syö ___.","We do not eat meat.","liha","lihaa","par","negative sentence"],
+["En ymmärrä ___.","I do not understand the word.","sana","sanaa","par","negative sentence"],
+["En osta ___.","I am not buying bread.","leipä","leipää","par","negative sentence"],
+["Odotan ___.","I wait for the bus.","bussi","bussia","par"],
+["Rakastan ___.","I love my dog.","koira","koiraa","par"],
+["Rakastan ___.","I love my mother.","äiti","äitiä","par"],
+["Opiskelen ___.","I study Finnish.","suomi","suomea","par"],
+["Puhun ___.","I speak English.","englanti","englantia","par"],
+["Katson ___.","I am watching a film.","elokuva","elokuvaa","par"],
+["Kuuntelen ___.","I listen to music.","musiikki","musiikkia","par"],
+["Pelaan ___.","I play football.","jalkapallo","jalkapalloa","par"],
+["Etsin ___.","I am looking for the key.","avain","avainta","par"],
+["Voitko auttaa ___?","Can you help me?","minä","minua","par"],
+["Onko sinulla ___ huomenna?","Do you have time tomorrow?","aika","aikaa","par"],
+["Haluan lisää ___.","I want more coffee.","kahvi","kahvia","par"],
+["Tarvitsen ___.","I need water.","vesi","vettä","par"],
+["Keitän ___.","I am cooking porridge.","puuro","puuroa","par"],
+["Ostan kilon ___.","I buy a kilo of potatoes.","perunat","perunoita","par","plural"],
+["Syön ___.","I eat berries.","marjat","marjoja","par","plural"],
+["Ostan ___.","I buy flowers.","kukat","kukkia","par","plural"],
+["Näen ___.","I see children.","lapset","lapsia","par","plural"],
+["Minulla on paljon ___.","I have many books.","kirjat","kirjoja","par","plural"],
+["Kaupassa on paljon ___.","There are many people in the shop.","ihmiset","ihmisiä","par","plural"],
+["Hän ostaa ___.","She buys shoes.","kengät","kenkiä","par","plural"],
+["Syön ___.","I eat apples.","omenat","omenoita","par","plural"],
+["Pihalla on ___.","There are cars in the yard.","autot","autoja","par","plural"],
+["Kaapissa on ___.","There are plates in the cupboard.","lautaset","lautasia","par","plural"],
+["Haluan ___.","I want some soup.","keitto","keittoa","par"],
+["Hän juo ___.","He drinks juice.","mehu","mehua","par"],
+["Lapset syövät ___.","The children eat ice cream.","jäätelö","jäätelöä","par"],
+["Ostan ___.","I buy cheese.","juusto","juustoa","par"],
+["Hän lukee ___.","She is reading a book.","kirja","kirjaa","par","ongoing action"],
+["En näe ___.","I do not see the bus.","bussi","bussia","par","negative sentence"],
+["Hän ei syö ___.","He does not eat fish.","kala","kalaa","par","negative sentence"],
+["Kolme ___ juo kahvia.","Three men drink coffee.","mies","miestä","par","after a number"],
+["Tarvitsen sata ___.","I need one hundred euros.","euro","euroa","par","after a number"]
+];
+
+const T=[...W.map(([en,fi])=>({k:"w",en,fi})),...S.map(([en,fi])=>({k:"s",en,fi}))];
+const ITEMS={};
+T.forEach((t,i)=>{ITEMS["t"+i]={id:"t"+i,type:t.k==="w"?"word":"sent",en:t.en,ans:[].concat(t.fi)}});
+G.forEach((g,i)=>{ITEMS["g"+i]={id:"g"+i,type:"gap",sent:g[0],en:g[1],base:g[2],ans:[].concat(g[3]),kind:g[4],note:g[5]||""}});
+
+/* ---------- Daily selection ---------- */
+const TOTAL=40, GAPS=18;
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function shuffle(arr,seed){const r=mulberry(seed),a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+const permCache={};
+function perm(name,n,c){const k=name+c;return permCache[k]||(permCache[k]=shuffle([...Array(n).keys()],c*7919+name.charCodeAt(0)*131+17))}
+/* Walks one shuffled deck per cycle, so nothing repeats until the whole bank has been used. */
+function pick(name,n,dayIdx,count){const out=[],seen=new Set();let k=dayIdx*count;while(out.length<count){const i=perm(name,n,Math.floor(k/n))[k%n];if(!seen.has(i)){seen.add(i);out.push(i)}k++}return out}
+function buildDay(dayIdx){
+  const t=pick("t",T.length,dayIdx,TOTAL-GAPS).map(i=>"t"+i);
+  const g=pick("g",G.length,dayIdx,GAPS).map(i=>"g"+i);
+  return shuffle([...t,...g],dayIdx*31+5);
+}
+
+/* ---------- Storage ---------- */
+function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
+function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+const now=new Date();
+const DAYIDX=Math.floor(Date.UTC(now.getFullYear(),now.getMonth(),now.getDate())/864e5);
+const DATESTR=now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0")+"-"+String(now.getDate()).padStart(2,"0");
+const KEY="paivan-suomi-"+DATESTR, DONEKEY="paivan-suomi-done";
+function freshState(){const ids=buildDay(DAYIDX);return{ids,queue:ids.slice(),pos:0,phase:"ask",mastered:[],missed:[],attempts:0,lastTyped:""}}
+let ST;
+(function load(){
+  try{const raw=lsGet(KEY);if(raw){const s=JSON.parse(raw);if(s&&Array.isArray(s.ids)&&Array.isArray(s.queue)&&s.ids.every(id=>ITEMS[id])&&s.queue.every(id=>ITEMS[id])){ST=s}}}catch(e){}
+  if(!ST)ST=freshState();
+})();
+function save(){lsSet(KEY,JSON.stringify(ST))}
+function doneDays(){try{return JSON.parse(lsGet(DONEKEY)||"[]")}catch(e){return[]}}
+function streak(){const d=new Set(doneDays());let i=DAYIDX;if(!d.has(i))i--;let c=0;while(d.has(i)){c++;i--}return c}
+function markDone(){const d=doneDays();if(!d.includes(DAYIDX)){d.push(DAYIDX);lsSet(DONEKEY,JSON.stringify(d.slice(-400)))}}
+
+/* ---------- Checking ---------- */
+function norm(s,strip){
+  s=s.toLowerCase().replace(/[.,!?;:"“”'’]/g," ").replace(/\s+/g," ").trim();
+  if(strip)s=s.replace(/^(minä|sinä|me|te)\s+(?=\S)/,"");
+  return s;
+}
+const keyOf=(it,s)=>norm(s,it.type==="sent");
+function matches(it,typed){const k=keyOf(it,typed);return it.ans.some(a=>keyOf(it,a)===k)}
+function bestVariant(it,typed){
+  const a=keyOf(it,typed);let best=it.ans[0],score=-1;
+  it.ans.forEach(v=>{const b=keyOf(it,v);let s=0;for(let i=0;i<Math.min(a.length,b.length);i++)if(a[i]===b[i])s++;if(s>score){score=s;best=v}});
+  return best;
+}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function diffHtml(it,typed){
+  const a=keyOf(it,typed),b=keyOf(it,bestVariant(it,typed));let h="";
+  for(let i=0;i<Math.max(a.length,b.length);i++){
+    const x=a[i],y=b[i];
+    if(x===undefined)h+='<span class="miss">_</span>';
+    else if(x===y)h+=esc(x===" "?" ":x);
+    else h+='<span class="wrongch">'+esc(x===" "?"·":x)+"</span>";
+  }
+  return h;
+}
+
+/* ---------- UI ---------- */
+const $=s=>document.querySelector(s);
+const el={ticks:$("#ticks"),count:$("#count"),quiz:$("#quiz"),done:$("#done"),kind:$("#kind"),again:$("#again"),prompt:$("#prompt"),english:$("#english"),hint:$("#hint"),f:$("#f"),ans:$("#ans"),fb:$("#fb"),go:$("#go")};
+$("#date").textContent=now.toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"});
+
+function renderTicks(){
+  const cur=ST.queue[ST.pos];
+  el.ticks.innerHTML=ST.ids.map(id=>{
+    let c="tick";
+    if(ST.mastered.includes(id))c+=" ok";
+    else if(ST.missed.includes(id))c+=" bad";
+    if(id===cur&&ST.pos<ST.queue.length)c+=" cur";
+    return '<span class="'+c+'"></span>';
+  }).join("");
+  const left=ST.ids.length-ST.mastered.length;
+  el.count.innerHTML="<span>Mastered "+ST.mastered.length+" / "+ST.ids.length+"</span><span>Still to master "+left+"</span><span>Missed "+ST.missed.length+"</span>";
+  $("#streak").textContent="Streak "+streak()+(streak()===1?" day":" days");
+}
+
+function render(){
+  renderTicks();
+  if(ST.pos>=ST.queue.length){return showDone()}
+  el.quiz.hidden=false;el.done.hidden=true;
+  const it=ITEMS[ST.queue[ST.pos]];
+  const isRepeat=ST.missed.includes(it.id);
+  el.again.hidden=!isRepeat;
+
+  if(it.type==="gap"){
+    el.kind.textContent="Fill the gap · "+(it.kind==="gen"?"genetiivi":"partitiivi");
+    el.prompt.innerHTML=esc(it.sent).replace("___",'<span class="blank">aaaa</span>');
+    el.english.hidden=false;el.english.textContent=it.en;
+    el.hint.hidden=false;
+    el.hint.innerHTML="<span>"+esc(it.base)+" → "+(it.kind==="gen"?"genetiivi":"partitiivi")+"</span>"+(it.note?"<span>"+esc(it.note)+"</span>":"");
+  }else{
+    el.kind.textContent=it.type==="word"?"Translate the word":"Translate the sentence";
+    el.prompt.textContent=it.en;
+    el.english.hidden=true;el.hint.hidden=true;
+  }
+
+  el.ans.className="";el.fb.hidden=true;el.fb.className="fb";
+  const ph=ST.phase;
+  if(ph==="ask"){
+    el.ans.disabled=false;el.ans.value="";el.go.textContent="Check";el.ans.placeholder="Kirjoita vastaus…";
+    el.ans.focus();
+  }else if(ph==="right"){
+    el.ans.disabled=true;el.ans.value=ST.lastTyped;el.ans.className="ok";
+    showOk(it,false);el.go.textContent="Next";el.go.focus();
+  }else if(ph==="retype"){
+    el.ans.disabled=false;el.ans.value="";el.ans.placeholder="Type the answer again, exactly";
+    showMiss(it,false);el.go.textContent="Check";el.ans.focus();
+  }else{
+    el.ans.disabled=true;el.ans.value=ST.lastTyped;el.ans.className="ok";
+    showRetypeOk(it);el.go.textContent="Next";el.go.focus();
+  }
+}
+function showOk(it){
+  el.fb.hidden=false;el.fb.className="fb ok";
+  const extra=it.ans.length>1?'<span class="small">Also accepted: '+it.ans.slice(1).map(esc).join(" · ")+"</span>":"";
+  el.fb.innerHTML="<strong>Oikein! Correct.</strong>"+extra;
+}
+function showMiss(it,wrongTry,typed){
+  el.fb.hidden=false;el.fb.className="fb bad";
+  let h="";
+  if(wrongTry){
+    h="<strong>Not exact yet.</strong><span class=\"diff\">"+diffHtml(it,typed)+'</span><span class="small">Red letters differ from the answer. Look again and retype it.</span>';
+  }else{
+    h="<strong>Not quite. The answer is:</strong>";
+    h+='<span class="answer">'+esc(it.ans[0])+"</span>";
+    if(it.ans.length>1)h+='<span class="small">Also accepted: '+it.ans.slice(1).map(esc).join(" · ")+"</span>";
+    if(ST.lastTyped)h+='<span class="small">You wrote: '+esc(ST.lastTyped)+"</span>";
+    h+='<span class="small">Type it exactly to continue. This question comes back after 5 more questions.</span>';
+  }
+  el.fb.innerHTML=h;
+}
+function showRetypeOk(it){
+  el.fb.hidden=false;el.fb.className="fb ok";
+  el.fb.innerHTML="<strong>Good. That is exact.</strong><span class=\"small\">You will see this question again soon.</span>";
+}
+
+function next(){ST.pos++;ST.phase="ask";ST.lastTyped="";save();render()}
+
+el.f.addEventListener("submit",e=>{
+  e.preventDefault();
+  if(ST.phase==="right"||ST.phase==="retypeOK"){next();return}
+  const typed=el.ans.value;
+  if(!typed.trim())return;
+  const it=ITEMS[ST.queue[ST.pos]];
+  const ok=matches(it,typed);
+  if(ST.phase==="ask"){
+    ST.attempts++;
+    ST.lastTyped=typed;
+    if(ok){
+      ST.phase="right";
+      if(!ST.mastered.includes(it.id))ST.mastered.push(it.id);
+    }else{
+      ST.phase="retype";
+      if(!ST.missed.includes(it.id))ST.missed.push(it.id);
+      const at=Math.min(ST.queue.length,ST.pos+6);
+      ST.queue.splice(at,0,it.id);
+    }
+    save();render();
+  }else if(ST.phase==="retype"){
+    if(ok){ST.phase="retypeOK";ST.lastTyped=typed;save();render()}
+    else{
+      el.ans.classList.add("bad");el.ans.classList.remove("shake");void el.ans.offsetWidth;el.ans.classList.add("shake");
+      showMiss(it,true,typed);
+      el.ans.select();
+    }
+  }
+});
+
+document.querySelectorAll(".key").forEach(b=>{
+  b.addEventListener("mousedown",e=>e.preventDefault());
+  b.addEventListener("click",()=>{
+    if(el.ans.disabled)return;
+    const s=el.ans.selectionStart??el.ans.value.length,e=el.ans.selectionEnd??s;
+    el.ans.setRangeText(b.dataset.ch,s,e,"end");el.ans.focus();
+  });
+});
+
+function showDone(){
+  el.quiz.hidden=true;el.done.hidden=false;markDone();
+  const total=ST.ids.length,first=total-ST.missed.length;
+  $("#streak").textContent="Streak "+streak()+(streak()===1?" day":" days");
+  $("#stats").innerHTML=
+    '<div class="stat"><b>'+total+'</b><span>questions mastered</span></div>'+
+    '<div class="stat"><b>'+Math.round(first/total*100)+'%</b><span>right on first try</span></div>'+
+    '<div class="stat"><b>'+ST.missed.length+'</b><span>needed a repeat</span></div>';
+  const box=$("#missedBox");
+  if(ST.missed.length){
+    box.hidden=false;
+    $("#missedList").innerHTML=ST.missed.map(id=>{
+      const it=ITEMS[id];
+      const q=it.type==="gap"?it.sent.replace("___","<b>"+esc(it.ans[0])+"</b>"):esc(it.en);
+      const line=it.type==="gap"?'<span>'+q+"</span><small>"+esc(it.en)+" · "+esc(it.base)+" → "+(it.kind==="gen"?"genetiivi":"partitiivi")+"</small>":"<span>"+q+' → <code>'+esc(it.ans[0])+"</code></span>";
+      return "<li>"+line+"</li>";
+    }).join("");
+  }else box.hidden=true;
+}
+$("#redo").addEventListener("click",()=>{ST=freshState();save();render()});
+
+render();
+</script>
