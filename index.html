@@ -77,6 +77,8 @@ form{display:flex;flex-direction:column;gap:12px}
 @keyframes shake{20%{transform:translateX(-6px)}60%{transform:translateX(6px)}100%{transform:none}}
 @media (prefers-reduced-motion:reduce){.shake{animation:none}}
 
+#wait h2{font-family:var(--f-display);font-size:1.7rem;margin:0}
+.clock{font-family:var(--f-mono);font-size:2.6rem;margin:0;color:var(--gold)}
 #done h2{font-family:var(--f-display);font-size:1.7rem;margin:0}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
 .stat{border:1px solid var(--line);border-radius:10px;padding:12px}
@@ -124,6 +126,13 @@ form{display:flex;flex-direction:column;gap:12px}
     </form>
   </section>
 
+  <section id="wait" class="card" hidden>
+    <h2>Short break</h2>
+    <p class="english" id="waitMsg"></p>
+    <p id="clock" class="clock"></p>
+    <button id="now" class="again" type="button">Review now</button>
+  </section>
+
   <section id="done" class="card" hidden>
     <h2>Hyvää työtä! Today is done.</h2>
     <div id="stats" class="stats"></div>
@@ -135,7 +144,7 @@ form{display:flex;flex-direction:column;gap:12px}
     <button id="redo" class="again" type="button">Practise today's set again</button>
   </section>
 
-  <p class="rules">Multiple-choice questions work the same way. Spelling must be exact, including ä and ö. Capital letters and punctuation are not checked. If you miss a question, you see the answer and type it exactly. It then returns 5 times, after every 5 questions, and keeps returning after that only while you still get it wrong. Every question you missed today is added to tomorrow's practice.</p>
+  <p class="rules">Multiple-choice questions work the same way. Spelling must be exact, including ä and ö. Capital letters and punctuation are not checked. If you miss a question, you see the answer and type it exactly. It then returns 5 times, after 2, 3, 4, 5 and 5 minutes, and keeps returning after that only while you still get it wrong. Every question you missed today is added to tomorrow's practice.</p>
 </main>
 
 <script>
@@ -310,11 +319,22 @@ const now=new Date();
 const DAYIDX=Math.floor(Date.UTC(now.getFullYear(),now.getMonth(),now.getDate())/864e5);
 const DATESTR=now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0")+"-"+String(now.getDate()).padStart(2,"0");
 const KEY="paivan-suomi-v2-"+DATESTR, DONEKEY="paivan-suomi-done", CARRYKEY="paivan-suomi-carry";
-const REPEATS=5, GAP=5;
+const REPEATS=5, DELAYS=[2,3,4,5,5];
 function getCarry(){try{const a=JSON.parse(lsGet(CARRYKEY)||"[]");return Array.isArray(a)?a.filter(id=>ITEMS[id]):[]}catch(e){return[]}}
 function setCarry(a){lsSet(CARRYKEY,JSON.stringify(a))}
 function addCarry(id){const a=getCarry();if(!a.includes(id)){a.push(id);setCarry(a)}}
-function mk(ids,review){return{ids,queue:ids.slice(),pos:0,phase:"ask",mastered:[],missed:[],reps:{},review,attempts:0,lastTyped:""}}
+function mk(ids,review){return{ids,queue:ids.slice(),pos:0,phase:"ask",mastered:[],missed:[],reps:{},pending:[],review,attempts:0,lastTyped:""}}
+function schedule(id,k){
+  const m=DELAYS[Math.min(k,DELAYS.length-1)];
+  ST.pending=ST.pending.filter(x=>x.id!==id);
+  ST.pending.push({id,at:Date.now()+m*60000});
+}
+/* Moves the earliest due missed question to the front of the queue. */
+function pull(){
+  const t=Date.now();
+  const due=ST.pending.filter(x=>x.at<=t).sort((a,b)=>a.at-b.at)[0];
+  if(due){ST.pending=ST.pending.filter(x=>x!==due);ST.queue.splice(ST.pos,0,due.id)}
+}
 function freshState(){
   const base=buildDay(DAYIDX),review=getCarry();
   setCarry([]);
@@ -325,6 +345,14 @@ let ST;
 (function load(){
   try{const raw=lsGet(KEY);if(raw){const s=JSON.parse(raw);if(s&&Array.isArray(s.ids)&&Array.isArray(s.queue)&&s.reps&&typeof s.reps==='object'&&Array.isArray(s.review)&&s.ids.every(id=>ITEMS[id])&&s.queue.every(id=>ITEMS[id])){ST=s}}}catch(e){}
   if(!ST)ST=freshState();
+  if(!Array.isArray(ST.pending)){
+    const keep=ST.queue.slice(0,ST.pos+1);ST.pending=[];
+    ST.queue.slice(ST.pos+1).forEach(id=>{
+      if(id in ST.reps){if(!ST.pending.some(x=>x.id===id))ST.pending.push({id,at:Date.now()+120000})}
+      else keep.push(id);
+    });
+    ST.queue=keep;
+  }
 })();
 function save(){lsSet(KEY,JSON.stringify(ST))}
 function doneDays(){try{return JSON.parse(lsGet(DONEKEY)||"[]")}catch(e){return[]}}
@@ -413,8 +441,12 @@ function renderTicks(){
 
 function render(){
   renderTicks();
-  if(ST.pos>=ST.queue.length){return showDone()}
-  el.quiz.hidden=false;el.done.hidden=true;
+  if(ST.pos>=ST.queue.length){
+    pull();
+    if(ST.pos>=ST.queue.length)return ST.pending.length?showWait():showDone();
+    save();
+  }
+  el.quiz.hidden=false;el.done.hidden=true;$("#wait").hidden=true;
   const it=ITEMS[ST.queue[ST.pos]];
   if(it.id in ST.reps){
     const n=ST.reps[it.id];
@@ -480,7 +512,7 @@ function showOk(it){
   el.fb.hidden=false;el.fb.className="fb ok";
   const extra=it.ans.length>1?'<span class="small">Also accepted: '+it.ans.slice(1).map(esc).join(" · ")+"</span>":"";
   const left=ST.reps[it.id]||0;
-  const more=left>0?'<span class="small">This question returns '+left+" more time"+(left>1?"s":"")+" today, after every 5 questions.</span>":"";
+  const more=left>0?'<span class="small">This question returns '+left+" more time"+(left>1?"s":"")+" today, in about "+DELAYS[Math.min(REPEATS-left,DELAYS.length-1)]+" minutes.</span>":"";
   el.fb.innerHTML="<strong>Oikein! Correct.</strong>"+extra+whyHtml(it)+more;
 }
 function showMiss(it,wrongTry,typed){
@@ -496,7 +528,7 @@ function showMiss(it,wrongTry,typed){
     if(it.ans.length>1)h+='<span class="small">Also accepted: '+it.ans.slice(1).map(esc).join(" · ")+"</span>";
     if(ST.lastTyped)h+='<span class="small">You wrote: '+esc(ST.lastTyped)+"</span>";
     h+=whyHtml(it);
-    h+='<span class="small">Type it exactly (or choose it) to continue. This question comes back after every 5 questions.</span>';
+    h+='<span class="small">Type it exactly (or choose it) to continue. This question comes back in about 2 minutes.</span>';
   }
   el.fb.innerHTML=h;
 }
@@ -505,7 +537,25 @@ function showRetypeOk(it){
   el.fb.innerHTML="<strong>Good. That is exact.</strong>"+whyHtml(it)+"<span class=\"small\">You will see this question again soon.</span>";
 }
 
-function next(){ST.pos++;ST.phase="ask";ST.lastTyped="";save();render()}
+function next(){ST.pos++;ST.phase="ask";ST.lastTyped="";pull();save();render()}
+function showWait(){
+  el.quiz.hidden=true;el.done.hidden=true;$("#wait").hidden=false;
+  tickWait();
+}
+function tickWait(){
+  if($("#wait").hidden)return;
+  const t=Date.now(),soon=Math.min(...ST.pending.map(x=>x.at));
+  if(!ST.pending.length||soon<=t){render();return}
+  const s=Math.ceil((soon-t)/1000);
+  $("#clock").textContent=Math.floor(s/60)+":"+String(s%60).padStart(2,"0");
+  const n=ST.pending.length;
+  $("#waitMsg").textContent=n+(n===1?" question you missed comes":" questions you missed come")+" back soon. Rest a moment, then try again.";
+}
+setInterval(tickWait,1000);
+$("#now").addEventListener("click",()=>{
+  if(!ST.pending.length)return;
+  const first=ST.pending.slice().sort((a,b)=>a.at-b.at)[0];first.at=0;save();render();
+});
 
 el.f.addEventListener("submit",e=>{
   e.preventDefault();
@@ -521,25 +571,25 @@ function check(it,typed){
   if(ST.phase==="ask"){
     ST.attempts++;
     ST.lastTyped=typed;
-    const requeue=()=>ST.queue.splice(Math.min(ST.queue.length,ST.pos+GAP+1),0,it.id);
+    const requeue=k=>schedule(it.id,k);
     if(!(it.id in ST.reps)){
       /* first time this question appears today */
       if(ok){ST.phase="right";ST.mastered.push(it.id)}
       else{
         ST.phase="retype";
         ST.missed.push(it.id);ST.reps[it.id]=REPEATS;
-        addCarry(it.id);requeue();
+        addCarry(it.id);requeue(0);
       }
     }else{
       /* a scheduled return of a missed question */
       ST.reps[it.id]=Math.max(0,ST.reps[it.id]-1);
       if(ok){
         ST.phase="right";
-        if(ST.reps[it.id]>0)requeue();
+        if(ST.reps[it.id]>0)requeue(REPEATS-ST.reps[it.id]);
         else if(!ST.mastered.includes(it.id))ST.mastered.push(it.id);
       }else{
         ST.phase="retype";
-        addCarry(it.id);requeue();
+        addCarry(it.id);requeue(0);
       }
     }
     save();render();
@@ -563,7 +613,7 @@ document.querySelectorAll(".key").forEach(b=>{
 });
 
 function showDone(){
-  el.quiz.hidden=true;el.done.hidden=false;markDone();
+  el.quiz.hidden=true;$("#wait").hidden=true;el.done.hidden=false;markDone();
   const total=ST.ids.length,first=total-ST.missed.length;
   $("#streak").textContent="Streak "+streak()+(streak()===1?" day":" days");
   $("#stats").innerHTML=
