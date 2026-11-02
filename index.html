@@ -481,7 +481,7 @@ function showOk(it){
   const extra=it.ans.length>1?'<span class="small">Also accepted: '+it.ans.slice(1).map(esc).join(" · ")+"</span>":"";
   const left=ST.reps[it.id]||0;
   const more=left>0?'<span class="small">This question returns '+left+" more time"+(left>1?"s":"")+" today, after every 5 questions.</span>":"";
-  el.fb.innerHTML="<strong>Oikein! Correct.</strong>"+extra+more;
+  el.fb.innerHTML="<strong>Oikein! Correct.</strong>"+extra+whyHtml(it)+more;
 }
 function showMiss(it,wrongTry,typed){
   el.fb.hidden=false;el.fb.className="fb bad";
@@ -502,7 +502,7 @@ function showMiss(it,wrongTry,typed){
 }
 function showRetypeOk(it){
   el.fb.hidden=false;el.fb.className="fb ok";
-  el.fb.innerHTML="<strong>Good. That is exact.</strong><span class=\"small\">You will see this question again soon.</span>";
+  el.fb.innerHTML="<strong>Good. That is exact.</strong>"+whyHtml(it)+"<span class=\"small\">You will see this question again soon.</span>";
 }
 
 function next(){ST.pos++;ST.phase="ask";ST.lastTyped="";save();render()}
