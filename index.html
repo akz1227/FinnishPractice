@@ -98,6 +98,30 @@ form{display:flex;flex-direction:column;gap:12px}
 .ref table{border-collapse:collapse;margin-top:8px;width:100%;display:block;overflow-x:auto;font-family:var(--f-mono);font-size:.8rem}
 .ref th,.ref td{border:1px solid var(--line);padding:4px 8px;text-align:left;white-space:nowrap}
 .ref th{color:var(--gold)}
+
+#gram{position:fixed;inset:0;z-index:50;background:var(--paper);overflow:auto;padding:20px max(16px,env(safe-area-inset-right,0px)) 48px max(16px,env(safe-area-inset-left,0px))}
+#gram .in{max-width:680px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.gbtn{font:inherit;font-size:.8rem;font-family:var(--f-mono);color:var(--on-lake);background:var(--lake);border:0;border-radius:999px;padding:4px 14px;cursor:pointer;font-weight:600}
+.gtop{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.gtop h2{margin:0;font-family:var(--f-display);color:var(--gold);font-size:1.6rem}
+.glist{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:10px}
+.gitem{font:inherit;text-align:left;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:14px;cursor:pointer}
+.gitem:hover{border-color:var(--gold)}
+.gitem b{display:block;font-family:var(--f-display);font-size:1.05rem}
+.gitem small{color:var(--muted)}
+.gitem.core{border-color:var(--lake)}
+.gpage{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;line-height:1.55}
+.gpage h3{color:var(--lake);font-family:var(--f-display);margin:18px 0 6px;font-size:1.05rem}
+.gpage h3:first-child{margin-top:0}
+.gpage p{margin:6px 0}
+.gpage ul{margin:6px 0;padding-left:20px}
+.gpage li{margin:3px 0}
+.gpage .tw{overflow-x:auto}
+.gpage table{border-collapse:collapse;font-size:.88rem;width:100%}
+.gpage td,.gpage th{border:1px solid var(--line);padding:5px 8px;text-align:left}
+.gpage tr:first-child td{color:var(--gold);font-weight:600}
+.gpage a{color:var(--gold)}
+.gsrc{color:var(--muted);font-size:.85rem}
 </style>
 
 <main class="wrap">
@@ -106,7 +130,7 @@ form{display:flex;flex-direction:column;gap:12px}
       <h1>Päivän Suomi</h1>
       <p class="sub">Finnish A2 daily practice: vocabulary, genitiivi and partitiivi</p>
     </div>
-    <div class="meta"><span id="date"></span><span id="streak"></span></div>
+    <div class="meta"><span id="date"></span><span id="streak"></span><button id="gbtn" class="gbtn" type="button">Grammar</button></div>
   </header>
 
   <section aria-label="Progress">
@@ -182,6 +206,12 @@ form{display:flex;flex-direction:column;gap:12px}
 <p class="rules">Multiple-choice questions work the same way. Spelling must be exact, including ä and ö. Capital letters and punctuation are not checked. If you miss a question, you see the answer and type it exactly. It then returns 5 times, after 2, 3, 4, 5 and 5 minutes, and keeps returning after that only while you still get it wrong. Every question you missed today is added to tomorrow's practice.</p>
 </main>
 
+<div id="gram" hidden><div class="in">
+<div class="gtop"><h2 id="gt">Grammar A2–B1</h2><button class="again" id="gx" type="button">Close</button></div>
+<div id="glist" class="glist"></div>
+<div id="gpage" class="gpage" hidden></div>
+<p class="gsrc">Short study summaries in my own words, with topics chosen to follow the Uusi kielemme grammar index. For the full articles and more exercises, see <a href="https://uusikielemme.fi/finnish-grammar/" target="_blank" rel="noopener">uusikielemme.fi/finnish-grammar</a>.</p>
+</div></div>
 <script>
 /* ---------- Question bank ---------- */
 const W=[
@@ -759,5 +789,253 @@ function showDone(){
 }
 $("#redo").addEventListener("click",()=>{ST=mk(ST.ids.slice(),ST.review);save();render()});
 
+
+/* ---------- Grammar pages ---------- */
+const U="https://uusikielemme.fi/";
+const GR=[
+{id:"wt",core:1,t:"Word types (sanatyypit)",s:"How the ending of a noun or adjective decides its forms",u:U+"finnish-grammar/consonant-gradation/wordtype-b-consonant-gradation-sanatyypit-astevaihtelu/",x:`# What it is
+Every noun and adjective belongs to a word type, decided by how the nominative ends. The type tells you the stem used for genitive, partitive and all other cases.
+# The main types
+| Ending | Nominative | Genitive | Partitive | Rule
+| -a -ä -o -u -y -ö | talo, kirja | talon, kirjan | taloa, kirjaa | stem = word; add -n; add -a/-ä
+| -e | perhe, huone | perheen, huoneen | perhettä, huonetta | double the e; partitive -tta/-ttä
+| -i (native) | nimi, kieli | nimen, kielen | nimeä, kieltä | i becomes e before endings
+| -i (loan) | bussi, pankki | bussin, pankin | bussia, pankkia | i stays; partitive -a/-ä
+| -si | vesi, uusi | veden, uuden | vettä, uutta | si becomes de/te in the stem
+| -nen | nainen, punainen | naisen, punaisen | naista, punaista | nen becomes se-/s-
+| -s | kaunis, lounas | kauniin, lounaan | kaunista, lounasta | s becomes a long vowel; partitive -sta/-stä
+| consonant | lämmin, kevät | lämpimän, kevään | lämmintä, kevättä | special stem (lämpimä-, kevää-)
+| long vowel | maa, tee, yö | maan, teen, yön | maata, teetä, yötä | partitive -ta/-tä
+# How to use it
+Step 1: find the type from the ending. Step 2: build the stem (nainen → naise-). Step 3: add the case ending. Always check kpt gradation too (see the kpt page).
+# Examples
+- Tämä on perheen talo. (-e type, genitive)
+- Juon vettä. (-si type, partitive of vesi)
+- Hän on iloinen. He ovat iloisia. (-nen type, plural partitive)
+# Common mistakes
+- Saying nimin instead of nimen.
+- Forgetting that vesi and uusi change the stem: veden, uuden.
+- Using -a on -e words: perhettä, not perhea.`},
+{id:"vt",core:1,t:"Verb types (verbityypit)",s:"Six types, their stems, endings, past tense and negation",u:U+"finnish-grammar/consonant-gradation/the-finnish-verbtypes",x:`# What it is
+The infinitive (dictionary form) tells you the verb type. The type tells you how to find the stem and how to conjugate.
+# The six types
+| Type | Infinitive ends | Example | Minä | Hän | Past (minä)
+| 1 | -a/-ä after a vowel, or -aa/-ää | puhua, ostaa | puhun, ostan | puhuu, ostaa | puhuin, ostin
+| 2 | -da/-dä | syödä, juoda | syön, juon | syö, juo | söin, join
+| 3 | -la/-lä, -na/-nä, -ra/-rä, -sta/-stä | tulla, mennä, pestä | tulen, menen, pesen | tulee, menee, pesee | tulin, menin, pesin
+| 4 | -ta/-tä after a vowel | haluta, avata | haluan, avaan | haluaa, avaa | halusin, avasin
+| 5 | -ita/-itä | tarvita | tarvitsen | tarvitsee | tarvitsin
+| 6 | -eta/-etä | vanheta | vanhenen | vanhenee | vanhenin
+# Personal endings
+-n, -t, (vowel lengthens), -mme, -tte, -vat/-vät. Type 2 has no ending in hän: syö, juo.
+# Negation
+en, et, ei, emme, ette, eivät + stem without ending: en puhu, et mene, hän ei halua, emme tarvitse.
+# How to use it
+Step 1: identify the type from the infinitive. Step 2: take the stem (puhu-, mene-, halua-). Step 3: add the ending. Step 4: check consonant gradation (minä: otan, hän: ottaa).
+# Related patterns
+- Haluan + infinitive: Haluan oppia suomea.
+- Voin / osaan + infinitive: Osaan uida.
+- Minun täytyy + infinitive: Minun täytyy mennä.
+# Common mistakes
+- Using the infinitive after a person: *minä mennä* → minä menen.
+- Forgetting that type 2 hän has no ending.
+- Adding -t to hän in type 4: haluaa, not haluat.`},
+{id:"kpt",core:1,t:"Consonant gradation (kpt)",s:"Strong and weak grade: when k, p, t change",u:U+"?p=754",x:`# What it is
+The consonants k, p and t change inside words. Strong grade appears before an open syllable (ends in a vowel). Weak grade appears before a closed syllable (ends in a consonant).
+# The changes
+| Strong | Weak | Example
+| kk | k | kukka → kukan
+| pp | p | kauppa → kaupan
+| tt | t | matto → maton
+| k | – (or j, v) | joki → joen, lukea → luen
+| p | v | leipä → leivän
+| t | d | katu → kadun
+| nk | ng | kenkä → kengät
+| mp | mm | lampi → lammen
+| nt | nn | lintu → linnun
+| lt | ll | ilta → illalla
+| rt | rr | kerta → kerran
+# When the weak grade appears
+- Genitive: kaupan, kadun
+- -ssa/-ssä, -sta/-stä, -lla/-llä, -lta/-ltä: kaupassa, kadulla
+- Plural nominative (-t): kaupat, kadut
+- Verbs: minä, sinä, me, te forms: otan, otat, otamme, otatte
+- Past tense: otin; negative: en ota
+# When the strong grade stays
+- Partitive: kauppaa, katua
+- Illative: kauppaan
+- Plural partitive: kauppoja
+- Verbs: hän and he forms: ottaa, ottavat
+# When there is no gradation
+After s, h or t inside the group (st, sk, ts, ht, tk): kysyn, kysyt. Many loanwords also have no gradation, so check new words in a dictionary.
+# How to use it
+Look at the case ending. If the next syllable is closed, use the weak grade. If it is open, keep the strong grade. kauppa → kaupan (closed), kauppaa (open).
+# Common mistakes
+- Making the illative weak: kauppaan, not kaupaan.
+- Weakening hän verbs: hän ottaa, not hän otaa.
+- Forgetting that nk becomes ng: kengät.`},
+{id:"par",core:1,t:"Partitive (partitiivi)",s:"Endings, plural, and every main use",u:U+"finnish-grammar/finnish-cases/grammatical-cases/the-partitive-plural-monikon-partitiivi",x:`# What it is
+The partitive expresses a part, an unspecified amount or something unfinished. Question: mitä? (what?, partly).
+# Singular endings
+| Word type | Nominative | Partitive
+| -a -ä -o -u -y -ö | talo, kirja | taloa, kirjaa
+| -e | perhe | perhettä
+| -nen | nainen | naista
+| -s | kaunis, lounas | kaunista, lounasta
+| long vowel / one syllable | maa, tee | maata, teetä
+| -si | vesi | vettä
+| pronouns | minä, sinä, hän | minua, sinua, häntä
+# Plural endings
+Plural partitive ends in -ia/-iä, -ja/-jä, -ita/-itä or -ioita: lapsia, kirjoja, omenoita, autoja, kenkiä. The strong grade is kept: kukkia, kauppoja.
+# When to use it
+- Unspecified amount or substance: Juon kahvia.
+- After numbers 2 and up and quantity words: kaksi kissaa, paljon vettä, vähän aikaa, monta ystävää.
+- Negative sentences: En juo kahvia. Minulla ei ole autoa.
+- Verbs that always take the partitive: rakastaa, pelätä, odottaa, auttaa, etsiä, tarvita, kuunnella, katsoa, opiskella.
+- Ongoing or unfinished action: Luen kirjaa. (vs Luin kirjan.)
+- Adjective predicates in a negative: Suomi ei ole vaikeaa.
+- Greetings and wishes: Hyvää huomenta! Hyvää yötä!
+- After some prepositions/postpositions: ilman sokeria, vastaan, kohti.
+# Contrast
+Ostan leivän. (one whole loaf, finished) / Ostan leipää. (some bread) / En osta leipää. (negative).
+# Common mistakes
+- Using nominative after kaksi: kaksi kissa → kaksi kissaa.
+- Using the genitive after paljon: paljon lunta, not paljon lumen.
+- Forgetting the partitive in negatives.`},
+{id:"gen",core:1,t:"Genitive (genetiivi)",s:"Formation, possession, objects, postpositions",u:U+"finnish-grammar/",x:`# What it is
+The genitive ends in -n. It answers kenen? (whose?). The ending is added to the weak-grade stem.
+# Formation
+| Type | Nominative | Genitive
+| -a -o -u ... | talo, kirja | talon, kirjan
+| -e | huone | huoneen
+| -nen | nainen | naisen
+| -s | kaunis | kauniin
+| -i | nimi, vesi | nimen, veden
+| kpt | kauppa, katu | kaupan, kadun
+| other | lapsi, mies | lapsen, miehen
+Plural genitive: -en, -ten, -jen, -ien: kissojen, lasten, naisten, ystävien.
+# Pronouns
+minun, sinun, hänen, meidän, teidän, heidän. Whose? kenen? Add a possessive suffix often: minun taloni.
+# Main uses
+- Possession: Matin auto, äidin kirja.
+- Total object (singular, positive, finished action): Ostin auton. Luen kirjan.
+- Postpositions: talon edessä, koulun takana, pöydän alla, ystävän luona, työn jälkeen, tuolin vieressä, lasten kanssa.
+- Necessity: Minun täytyy mennä. Minun pitää opiskella.
+- Measures of time and quantity: kolmen päivän päästä, viikon ajan, kahden hengen huone.
+# How to use it
+Whose is it? Use the genitive. Is the object whole and finished? Use the genitive. Is there a postposition? Use the genitive.
+# Common mistakes
+- Forgetting gradation: kaupan, not kauppan.
+- Using the nominative before a postposition: *talo edessä* → talon edessä.
+- Using the partitive after jälkeen: työn jälkeen.`},
+{id:"cases",t:"Cases overview",s:"The 15 cases and what they answer",u:U+"?p=552",x:`# Core cases
+| Case | Ending | Meaning | Example
+| nominative | – | subject | Kirja on pöydällä.
+| genitive | -n | whose; total object | Matin kirja
+| partitive | -a/-ä, -ta/-tä | part, amount | juon vettä
+# Local cases (place)
+| Case | Ending | Meaning | Example
+| inessive | -ssa/-ssä | in | kaupassa
+| elative | -sta/-stä | out of, from inside | kaupasta
+| illative | -an/-en, -hVn, -seen | into | kauppaan
+| adessive | -lla/-llä | on, at, with, by means of | pöydällä, bussilla
+| ablative | -lta/-ltä | from | pöydältä
+| allative | -lle | to, onto | pöydälle
+# Other cases
+essive -na/-nä (as, at: lapsena, maanantaina), translative -ksi (become: opettajaksi), abessive -tta (without), instructive and comitative are rare.
+# How to use it
+Pick by question: missä (in/at), mistä (from), mihin (to). Remember the weak grade before -ssa, -sta, -lla, -lta, but the strong grade in illative: kauppaan.`},
+{id:"obj",t:"The object (objekti)",s:"Total vs partial object",u:U+"finnish-grammar/syntax/object-sentences/the-finnish-object-objekti",x:`# What it is
+Finnish has two kinds of object. Total object: finished, whole, positive. Partial object: negative, ongoing, or unspecified amount (partitive).
+# Total object forms
+- Singular: genitive -n (Ostin auton.)
+- Plural: nominative -t (Ostin kirjat.)
+- Some words and imperatives: nominative (Osta kirja! Minun täytyy ostaa kirja.)
+# Partial object
+Partitive: Ostin autoa. En ostanut autoa. Luen kirjaa.
+# Choosing
+| Situation | Object
+| finished, positive | total
+| negative | partitive
+| ongoing or incomplete | partitive
+| some amount of a substance | partitive
+| verb like rakastaa, odottaa | partitive always
+# Examples
+Luin kirjan. (I read the whole book.) / Luin kirjaa. (I was reading a book.) / En lukenut kirjaa.`},
+{id:"ten",t:"Tenses and moods",s:"Present, past, perfect, conditional, imperative, passive",u:U+"finnish-grammar/verbs/verb-tenses-and-moods/the-negative-imperfect-negatiivinen-imperfekti",x:`# Tenses
+| Form | How | Example
+| present | stem + ending | puhun, menen
+| past (imperfect) | stem + i + ending | puhuin, menin, halusin
+| negative past | en + -nut/-nyt | en puhunut, en mennyt
+| perfect | olen + -nut/-nyt | olen puhunut
+| pluperfect | olin + -nut/-nyt | olin puhunut
+Participle -nut/-nyt: puhunut, mennyt, tullut, nähnyt, ollut.
+# Conditional
+Stem + isi + ending: puhuisin, haluaisin, menisin. Polite: Haluaisin kahvia. Voisitko auttaa?
+# Imperative
+puhu! tule! ota! Negative: älä puhu! Plural: puhukaa! tulkaa!
+# Passive
+Present: puhutaan, syödään, mennään. Past: puhuttiin. The passive is also used for "we": mennään!`},
+{id:"cmp",t:"Comparison and numerals",s:"-mpi, -in, kuin, numbers",u:U+"finnish-grammar/",x:`# Comparison
+| Positive | Comparative | Superlative
+| iso | isompi | isoin
+| kaunis | kauniimpi | kaunein
+| hyvä | parempi | paras
+| paljon | enemmän | eniten
+Than: kuin + nominative (Hän on pitempi kuin minä) or the partitive (Hän on pitempi minua).
+# Numerals
+yksi, kaksi, kolme, neljä, viisi, kuusi, seitsemän, kahdeksan, yhdeksän, kymmenen, sata, tuhat. After 2 and up the noun is partitive singular: kaksi kissaa. In other cases the number agrees: kahdessa talossa.`},
+{id:"pos",t:"Postpositions and place words",s:"Words that follow genitive or partitive",u:U+"finnish-grammar/",x:`# Genitive postpositions
+edessä, takana, vieressä, alla, päällä, luona, kanssa, jälkeen, ympärillä, välillä, takia, vuoksi.
+Examples: koulun takana, talon edessä, ystävän luona, työn jälkeen.
+# Partitive
+ilman (without): ilman sokeria. vastaan (against), kohti (toward), pitkin (along).
+# Time
+ennen (before) + partitive: ennen kuutta. jälkeen (after) + genitive: kuuden jälkeen.`},
+{id:"inf",t:"Infinitives and participles",s:"Verb forms used in A2–B1 sentences",u:U+"finnish-grammar/",x:`# 1st infinitive
+Dictionary form: mennä, puhua. After haluta, voida, osata, täytyy, pitää: Haluan mennä.
+# 3rd infinitive (-maan, -massa)
+Menen nukkumaan. Olen syömässä. Tulen syömästä.
+# Participles
+-va/-vä (active present): puhuva, nukkuva. -nut/-nyt (active past): puhunut. -tu/-ty (passive past): tehty, avattu.
+# Examples
+Hän on mennyt kotiin. Avattu ovi. Nukkuva lapsi.`},
+{id:"neg",t:"Negation and questions",s:"en/et/ei, -ko, question words",u:U+"finnish-grammar/",x:`# Negation
+Negative verb: en, et, ei, emme, ette, eivät + stem. En puhu suomea. Hän ei tule.
+Subject partitive in negatives: Minulla ei ole aikaa.
+# Questions
+- -ko/-kö on the verb: Puhutko suomea?
+- Question words: kuka (who), mikä (what), missä, mistä, mihin, milloin, miksi, kuinka, paljonko.
+- Answers: kyllä (yes), ei (no), or repeat the verb: Puhutko? Puhun.`}
+];
+const gb=s=>document.querySelector(s);
+const gesc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
+function gmd(t){
+  let out="",mode="",rows=0;
+  const close=()=>{if(mode==="ul")out+="</ul>";if(mode==="t")out+="</table></div>";mode=""};
+  t.split("\n").forEach(l=>{
+    if(!l.trim())return;
+    if(l[0]==="#"){close();out+="<h3>"+gesc(l.slice(2))+"</h3>";return}
+    if(l[0]==="-"){if(mode!=="ul"){close();out+="<ul>";mode="ul"}out+="<li>"+gesc(l.slice(2))+"</li>";return}
+    if(l[0]==="|"){if(mode!=="t"){close();out+='<div class="tw"><table>';mode="t"}
+      out+="<tr>"+l.slice(1).split("|").map(c=>"<td>"+gesc(c.trim())+"</td>").join("")+"</tr>";return}
+    close();out+="<p>"+gesc(l)+"</p>";
+  });
+  close();return out;
+}
+gb("#glist").innerHTML=GR.map(g=>'<button type="button" class="gitem'+(g.core?" core":"")+'" data-id="'+g.id+'"><b>'+gesc(g.t)+"</b><small>"+gesc(g.s)+"</small></button>").join("");
+function gopen(id){
+  const g=GR.find(x=>x.id===id);if(!g)return;
+  gb("#glist").hidden=true;gb("#gpage").hidden=false;gb("#gt").textContent=g.t;gb("#gx").textContent="Back";
+  gb("#gpage").innerHTML=gmd(g.x)+'<p class="gsrc"><a href="'+g.u+'" target="_blank" rel="noopener">More on uusikielemme.fi</a></p>';
+  gb("#gram").scrollTop=0;
+}
+function gclose(){
+  if(!gb("#gpage").hidden){gb("#gpage").hidden=true;gb("#glist").hidden=false;gb("#gt").textContent="Grammar A2–B1";gb("#gx").textContent="Close";return}
+  gb("#gram").hidden=true;
+}
+gb("#glist").addEventListener("click",e=>{const b=e.target.closest(".gitem");if(b)gopen(b.dataset.id)});
+gb("#gx").addEventListener("click",gclose);
+gb("#gbtn").addEventListener("click",()=>{gb("#gram").hidden=false;gb("#gpage").hidden=true;gb("#glist").hidden=false;gb("#gt").textContent="Grammar A2–B1";gb("#gx").textContent="Close"});
 render();
 </script>
