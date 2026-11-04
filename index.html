@@ -83,6 +83,8 @@ form{display:flex;flex-direction:column;gap:12px}
 .miss{color:var(--bad);font-weight:600}
 .why{margin-top:4px;padding-top:8px;border-top:1px solid currentColor;font-size:.92rem;color:var(--ink)}
 .why b{color:var(--gold);font-weight:650}
+.why .ln{display:block}
+.why .ln+.ln{margin-top:4px}
 .shake{animation:shake .32s}
 @keyframes shake{20%{transform:translateX(-6px)}60%{transform:translateX(6px)}100%{transform:none}}
 @media (prefers-reduced-motion:reduce){.shake{animation:none}}
@@ -637,7 +639,18 @@ function why(it){
   }
   return out.join(" ");
 }
-function whyHtml(it){const w=why(it);return w?'<span class="why"><b>Why:</b> '+esc(w)+"</span>":""}
+function meaningOf(it){
+  if(it.type==="word"||it.type==="sent")return [[it.ans[0],it.en]];
+  const out=[];
+  (it.uses||[]).forEach(l=>{const id=WID[l];if(id)out.push([l,ITEMS[id].en])});
+  return out;
+}
+function whyHtml(it){
+  const w=why(it);
+  const m=meaningOf(it).map(([f,e])=>"<b>"+esc(f)+"</b> = "+esc(e)).join(" · ");
+  const lines=(m?'<span class="ln"><b>Meaning:</b> '+m+"</span>":"")+(w?'<span class="ln"><b>Why:</b> '+esc(w)+"</span>":"");
+  return lines?'<span class="why">'+lines+"</span>":"";
+}
 
 
 
